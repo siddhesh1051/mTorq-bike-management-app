@@ -1,0 +1,199 @@
+{
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "IBM Plex Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "weights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "bold": 700,
+      "black": 900
+    },
+    "sizes": {
+      "h1": "text-4xl md:text-5xl tracking-tight font-bold",
+      "h2": "text-3xl md:text-4xl tracking-tight font-bold",
+      "h3": "text-2xl md:text-3xl tracking-tight font-semibold",
+      "body_lg": "text-lg leading-relaxed",
+      "body_base": "text-base leading-relaxed",
+      "caption": "text-sm text-muted-foreground tracking-wide uppercase"
+    },
+    "usage": {
+      "headings": "Use Manrope for all section titles and major headings. Keep tracking tight.",
+      "body": "Use IBM Plex Sans for all paragraphs and UI labels.",
+      "numbers": "Use JetBrains Mono for all currency, odometer readings, and dates to ensure tabular alignment."
+    }
+  },
+  "colors": {
+    "palette": {
+      "background": {
+        "default": "#09090b",
+        "paper": "#18181b",
+        "subtle": "#27272a"
+      },
+      "foreground": {
+        "default": "#fafafa",
+        "muted": "#a1a1aa",
+        "subtle": "#52525b"
+      },
+      "primary": {
+        "default": "#ccfbf1",
+        "foreground": "#115e59",
+        "hover": "#99f6e4"
+      },
+      "accent": {
+        "default": "#facc15",
+        "foreground": "#422006"
+      },
+      "border": {
+        "default": "#27272a",
+        "active": "#3f3f46"
+      },
+      "status": {
+        "success": "#4ade80",
+        "warning": "#fbbf24",
+        "error": "#f87171",
+        "info": "#60a5fa"
+      }
+    },
+    "theme_strategy": "Swiss & High-Contrast (Dark Mode)",
+    "rules": [
+      "Never use pure black (#000000). Use #09090b (Zinc 950) as the deepest shade.",
+      "Primary action color is a soft Teal (#ccfbf1) to contrast with the dark industrial background.",
+      "Use the 'Accent' Yellow (#facc15) sparingly for critical alerts or 'Add Expense' focus.",
+      "Borders should be subtle (Zinc 800) but present to define structure."
+    ]
+  },
+  "visual_enhancers": {
+    "radius": {
+      "default": "rounded-none",
+      "card": "rounded-sm",
+      "button": "rounded-full"
+    },
+    "shadows": {
+      "card": "shadow-[0_0_0_1px_rgba(255,255,255,0.1)]",
+      "hover": "shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_4px_12px_rgba(0,0,0,0.5)]",
+      "glow": "drop-shadow-[0_0_15px_rgba(204,251,241,0.3)]"
+    },
+    "textures": {
+      "noise": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")"
+    },
+    "glassmorphism": {
+      "enabled": true,
+      "classes": "bg-zinc-950/70 backdrop-blur-xl border border-white/10"
+    }
+  },
+  "component_name": {
+    "card": "Card",
+    "button": "Button",
+    "input": "Input",
+    "select": "Select",
+    "dialog": "Dialog",
+    "sheet": "Sheet",
+    "table": "Table",
+    "badge": "Badge",
+    "avatar": "Avatar",
+    "separator": "Separator",
+    "tabs": "Tabs",
+    "scroll_area": "ScrollArea",
+    "sonner": "Toaster"
+  },
+  "grids": {
+    "dashboard": "grid grid-cols-1 md:grid-cols-4 gap-4 p-4 md:p-8",
+    "bike_list": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 md:p-8",
+    "expense_list": "flex flex-col gap-2 p-4 md:p-8"
+  },
+  "layouts": {
+    "dashboard_structure": [
+      "Header (Welcome + Total Expense)",
+      "Quick Actions (Add Expense, Add Bike)",
+      "Stats Grid (Category Breakdown)",
+      "Recent Activity List"
+    ],
+    "bike_card_structure": [
+      "Image (Top half, aspect video)",
+      "Info (Model, Reg No) - Bottom half",
+      "Status Badge (Active/Service Due)"
+    ]
+  },
+  "motion": {
+    "transitions": "transition-all duration-300 ease-out",
+    "hover_effects": "hover:-translate-y-1 hover:shadow-lg",
+    "list_entrance": {
+      "initial": { "opacity": 0, "y": 20 },
+      "animate": { "opacity": 1, "y": 0 },
+      "stagger": 0.05
+    }
+  },
+  "accessibility": {
+    "contrast_check": "Ensure all text meets WCAG AA (4.5:1) against the dark background.",
+    "focus_states": "Visible focus rings (ring-2 ring-primary) on all interactive elements.",
+    "aria_labels": "Required for all icon-only buttons (e.g., 'Add Expense', 'Edit Bike')."
+  },
+  "media": {
+    "image_style": "Desaturated or Black & White with high contrast. Use CSS filter: grayscale(100%) contrast(120%).",
+    "icons": "Lucide React (Stroke width: 1.5px for elegance)"
+  },
+  "3d_libraries": {
+    "usage": "Minimal. Use only for the 'Empty State' or 'Loading' screens if absolutely necessary. Prefer CSS animations.",
+    "library": "None required for this MVP."
+  },
+  "image_urls": {
+    "bikes": [
+      {
+        "url": "https://images.unsplash.com/photo-1589963575227-08d8ea840e85?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwyfHxtb3RvcmN5Y2xlJTIwb24lMjB3aW5kaW5nJTIwcm9hZCUyMGRhcmslMjBtb29keXxlbnwwfHx8fDE3NjU1NjYyNTl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Black sports bike on road (Grayscale)",
+        "category": "hero"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1565605814785-090425053d36?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHw0fHxtb3RvcmN5Y2xlJTIwb24lMjB3aW5kaW5nJTIwcm9hZCUyMGRhcmslMjBtb29keXxlbnwwfHx8fDE3NjU1NjYyNTl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Motorcycle parked at night",
+        "category": "card_background"
+      }
+    ],
+    "maintenance": [
+      {
+        "url": "https://images.unsplash.com/photo-1650569664566-f0014dcf54e3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxtb3RvcmN5Y2xlJTIwbWFpbnRlbmFuY2UlMjBtZWNoYW5pY3xlbnwwfHx8fDE3NjU1NjYyNTd8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Mechanic working on bike",
+        "category": "service_log"
+      }
+    ],
+    "fuel": [
+      {
+        "url": "https://images.unsplash.com/photo-1765073727186-4158887a00a8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwxfHxnYXMlMjBzdGF0aW9uJTIwcHVtcCUyMG5venpsZSUyMG5pZ2h0fGVufDB8fHx8MTc2NTU2NjI2MXww&ixlib=rb-4.1.0&q=85",
+        "description": "Gas station pump at night",
+        "category": "fuel_log"
+      }
+    ]
+  },
+  "component_path": {
+    "ui": "/app/frontend/src/components/ui",
+    "pages": "/app/frontend/src/pages",
+    "layouts": "/app/frontend/src/layouts"
+  },
+  "instructions_to_main_agent": [
+    "Implement the 'Swiss & High-Contrast' dark theme immediately in tailwind.config.js.",
+    "Install 'lucide-react' for icons.",
+    "Create a 'Layout' component that handles the bottom navigation (mobile) and sidebar (desktop).",
+    "Use the 'Glassmorphism' style for the Dashboard cards: bg-zinc-950/70 backdrop-blur-xl border-white/10.",
+    "Ensure all text inputs have a height of at least 48px (h-12) for touch accessibility.",
+    "Use the provided image URLs for the 'Add Bike' placeholder and 'Empty State' screens."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid this.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts. Use grids and asymmetry.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition. Eg: transition: all.",
+    "You MUST NOT center align the app container.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations.",
+    "NEVER use AI assistant Emoji characters like 🤖🧠 etc.",
+    "Every interaction needs micro-animations.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Use 'sonner' for toasts."
+  ]
+}
