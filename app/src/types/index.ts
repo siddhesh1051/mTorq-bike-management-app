@@ -25,6 +25,7 @@ export interface Bike {
   id: string;
   user_id: string;
   name: string;
+  brand?: string;
   model: string;
   registration: string;
   created_at: string;
@@ -32,15 +33,18 @@ export interface Bike {
 
 export interface BikeCreate {
   name: string;
+  brand: string;
   model: string;
   registration: string;
 }
+
+export type ExpenseType = 'Fuel' | 'Service' | 'Insurance' | 'Accessories' | 'Spare Parts' | 'Tyres' | 'Battery' | 'Toll' | 'Parking' | 'Washing' | 'Other';
 
 export interface Expense {
   id: string;
   user_id: string;
   bike_id: string;
-  type: 'Fuel' | 'Service' | 'Insurance' | 'Other';
+  type: ExpenseType;
   amount: number;
   date: string;
   odometer?: number;
@@ -62,4 +66,15 @@ export interface DashboardStats {
   category_breakdown: Record<string, number>;
   recent_expenses: Expense[];
   total_bikes: number;
+}
+
+export interface BrandModelsMap {
+  [brand: string]: string[];
+}
+
+export interface MasterData {
+  brands: string[];
+  models: string[];
+  brandsModels: BrandModelsMap;
+  expenseTypes: string[];
 }

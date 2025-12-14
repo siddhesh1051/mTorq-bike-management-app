@@ -10,6 +10,7 @@ import {
   Expense,
   ExpenseCreate,
   DashboardStats,
+  BrandModelsMap,
 } from '../types';
 
 const API_BASE_URL = `${API_CONFIG.BACKEND_URL}${API_CONFIG.API_PREFIX}`;
@@ -99,6 +100,27 @@ class ApiService {
   // Dashboard API
   async getDashboardStats(): Promise<DashboardStats> {
     const response = await this.client.get<DashboardStats>('/dashboard/stats');
+    return response.data;
+  }
+
+  // Master Data APIs
+  async getBikeBrands(): Promise<string[]> {
+    const response = await this.client.get<string[]>('/master/brands');
+    return response.data;
+  }
+
+  async getBikeModels(): Promise<string[]> {
+    const response = await this.client.get<string[]>('/master/models');
+    return response.data;
+  }
+
+  async getBrandsWithModels(): Promise<BrandModelsMap> {
+    const response = await this.client.get<BrandModelsMap>('/master/brands-models');
+    return response.data;
+  }
+
+  async getExpenseTypes(): Promise<string[]> {
+    const response = await this.client.get<string[]>('/master/expense-types');
     return response.data;
   }
 }

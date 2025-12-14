@@ -43,10 +43,20 @@ export const AuthScreen = () => {
         });
       }
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.detail || 'An error occurred. Please try again.'
-      );
+      console.log('Auth error:', error);
+      console.log('Error message:', error.message);
+      console.log('Error response:', error.response?.data);
+      
+      let errorMessage = 'An error occurred. Please try again.';
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message?.includes('Network Error')) {
+        errorMessage = 'Cannot connect to server. Make sure backend is running and your device is on the same network.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }

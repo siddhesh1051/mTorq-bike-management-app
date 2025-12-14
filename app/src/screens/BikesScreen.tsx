@@ -18,8 +18,9 @@ import {
   Button,
   Input,
   ModalDialog,
+  Picker,
 } from '../components';
-import { Bike, BikeCreate } from '../types';
+import { Bike, BikeCreate, BrandModelsMap } from '../types';
 import apiService from '../services/api';
 
 export const BikesScreen = () => {
@@ -28,15 +29,28 @@ export const BikesScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingBike, setEditingBike] = useState<Bike | null>(null);
+  const [brandsModels, setBrandsModels] = useState<BrandModelsMap>({});
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [formData, setFormData] = useState<BikeCreate>({
     name: '',
+    brand: '',
     model: '',
     registration: '',
   });
 
   useEffect(() => {
     fetchBikes();
+    fetchBrandsModels();
   }, []);
+
+  const fetchBrandsModels = async () => {
+    try {
+      const data = await apiService.getBrandsWithModels();
+      setBrandsModels(data);
+    } catch (error) {
+      console.error('Failed to load brands/models:', error);
+    }
+  };
 
   const fetchBikes = async () => {
     try {
@@ -57,7 +71,7 @@ export const BikesScreen = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.model || !formData.registration) {
+    if (!formData.name || !formData.brand || !formData.model || !formData.registration) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -81,11 +95,16 @@ export const BikesScreen = () => {
 
   const handleEdit = (bike: Bike) => {
     setEditingBike(bike);
+    const brand = bike.brand || '';
     setFormData({
       name: bike.name,
+      brand: brand,
       model: bike.model,
       registration: bike.registration,
     });
+    if (brand && brandsModels[brand]) {
+      setAvailableModels(brandsModels[brand]);
+    }
     setModalVisible(true);
   };
 
@@ -113,8 +132,14 @@ export const BikesScreen = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', model: '', registration: '' });
+    setFormData({ name: '', brand: '', model: '', registration: '' });
+    setAvailableModels([]);
     setEditingBike(null);
+  };
+
+  const handleBrandChange = (brand: string) => {
+    setFormData({ ...formData, brand, model: '' });
+    setAvailableModels(brandsModels[brand] || []);
   };
 
   const handleModalClose = () => {
@@ -194,6 +219,14 @@ export const BikesScreen = () => {
                   <Text className="text-white text-xl font-bold">{bike.name}</Text>
                 </CardHeader>
                 <CardContent>
+                  {bike.brand && (
+                    <View className="mb-3">
+                      <Text className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
+                        Brand
+                      </Text>
+                      <Text className="text-zinc-300 font-medium">{bike.brand}</Text>
+                    </View>
+                  )}
                   <View className="mb-3">
                     <Text className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
                       Model
@@ -245,11 +278,26 @@ export const BikesScreen = () => {
           onChangeText={(text) => setFormData({ ...formData, name: text })}
         />
 
-        <Input
+        <Picker
+          label="Brand *"
+          placeholder="Select brand"
+          value={formData.brand}
+          options={Object.keys(brandsModels).map((brand) => ({
+            label: brand,
+            value: brand,
+          }))}
+          onValueChange={handleBrandChange}
+        />
+
+        <Picker
           label="Model *"
-          placeholder="e.g., Classic 350"
+          placeholder={formData.brand ? 'Select model' : 'Select brand first'}
           value={formData.model}
-          onChangeText={(text) => setFormData({ ...formData, model: text })}
+          options={availableModels.map((model) => ({
+            label: model,
+            value: model,
+          }))}
+          onValueChange={(model) => setFormData({ ...formData, model })}
         />
 
         <Input

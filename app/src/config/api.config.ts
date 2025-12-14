@@ -1,25 +1,24 @@
-// API Configuration
-// Update this file to change the backend URL for different environments
+import { EXPO_PUBLIC_API_URL } from '@env';
 
 /**
- * Backend URL Configuration
+ * API Configuration
  * 
- * IMPORTANT: Update this constant based on your environment:
+ * Backend URL is now loaded from environment variables (.env file)
  * 
- * LOCAL DEVELOPMENT:
- * - iOS Simulator: 'http://localhost:8000'
- * - Android Emulator: 'http://10.0.2.2:8000'
- * - Physical Device: 'http://YOUR_LOCAL_IP:8000' (get IP with ifconfig/ipconfig)
+ * To change the backend URL:
+ * 1. Update the .env file in the project root
+ * 2. Restart the Expo development server
  * 
- * PRODUCTION:
- * - Use your deployed backend URL: 'https://your-api.com'
- * 
- * Make sure your backend CORS settings allow requests from your device/emulator.
+ * Environment-specific URLs:
+ * - iOS Simulator: http://localhost:8000
+ * - Android Emulator: http://10.0.2.2:8000
+ * - Physical Device: http://YOUR_LOCAL_IP:8000
+ * - Production: https://your-api.com
  */
 
 export const API_CONFIG = {
-  // Change this to your backend URL
-  BACKEND_URL: 'http://localhost:8000',
+  // Backend URL from environment variable with fallback
+  BACKEND_URL: EXPO_PUBLIC_API_URL || 'http://localhost:8000',
   
   // API prefix (usually '/api')
   API_PREFIX: '/api',
