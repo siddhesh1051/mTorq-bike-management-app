@@ -33,7 +33,14 @@ export const SettingsScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 20,
+          paddingBottom: 80,
+        }}
+      >
         {/* Header */}
         <View className="mb-6">
           <Text className="text-white text-4xl font-bold">Settings</Text>
@@ -85,24 +92,6 @@ export const SettingsScreen = () => {
           </CardHeader>
           <CardContent>
             <Button title="Logout" variant="danger" onPress={handleLogout} />
-          </CardContent>
-        </Card>
-
-        {/* App Info */}
-        <Card>
-          <CardHeader>
-            <Text className="text-white text-xl font-semibold">About</Text>
-          </CardHeader>
-          <CardContent>
-            <Text className="text-zinc-400 text-sm mb-2">
-              Bike Expense Tracker v1.0
-            </Text>
-            <Text className="text-zinc-400 text-sm mb-4">
-              Track and manage all your bike-related expenses in one place.
-            </Text>
-            <Text className="text-zinc-600 text-xs">
-              © 2024 Bike Budget. All rights reserved.
-            </Text>
           </CardContent>
         </Card>
       </ScrollView>

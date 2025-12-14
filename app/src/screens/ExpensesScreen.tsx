@@ -58,9 +58,13 @@ export const ExpensesScreen = () => {
       ]);
       setExpenses(expensesData);
       setBikes(bikesData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load expenses:", error);
-      showError("Load Failed", "Failed to load expenses");
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to load expenses";
+      showError("Load Failed", errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -94,8 +98,13 @@ export const ExpensesScreen = () => {
       setEditModalVisible(false);
       setEditingExpense(null);
       fetchData();
-    } catch (error) {
-      showError("Update Failed", "Failed to update expense");
+    } catch (error: any) {
+      console.error("Error updating expense:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to update expense";
+      showError("Update Failed", errorMessage);
     }
   };
 
@@ -111,8 +120,13 @@ export const ExpensesScreen = () => {
       await apiService.deleteExpense(expenseToDelete.id);
       showSuccess("Expense Deleted", "Expense deleted successfully!");
       fetchData();
-    } catch (error) {
-      showError("Delete Failed", "Failed to delete expense");
+    } catch (error: any) {
+      console.error("Error deleting expense:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to delete expense";
+      showError("Delete Failed", errorMessage);
     } finally {
       setDeleteDialogVisible(false);
       setExpenseToDelete(null);
@@ -126,7 +140,9 @@ export const ExpensesScreen = () => {
 
   const getBikeName = (bikeId: string) => {
     const bike = bikes.find((b) => b.id === bikeId);
-    return bike ? `${bike.name} (${bike.registration})` : "Unknown Bike";
+    if (!bike) return "Unknown Bike";
+    const bikeName = `${bike.brand || ""} ${bike.model}`.trim();
+    return bike.registration ? `${bikeName} (${bike.registration})` : bikeName;
   };
 
   const filteredExpenses = expenses.filter((expense) => {
@@ -163,7 +179,7 @@ export const ExpensesScreen = () => {
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1">
         {/* Header */}
-        <View className="px-4 py-3 border-b border-white/10">
+        <View className="px-5 py-4 border-b border-white/10">
           <Text className="text-white text-3xl font-bold">Expenses</Text>
           <Text className="text-zinc-400 mt-1">
             View and manage all expenses
@@ -172,6 +188,11 @@ export const ExpensesScreen = () => {
 
         <ScrollView
           className="flex-1"
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 80,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -181,7 +202,7 @@ export const ExpensesScreen = () => {
           }
         >
           {/* Filters */}
-          <View className="p-4">
+          <View>
             <Card style={{ marginBottom: 16 }}>
               <CardContent>
                 {/* Search */}
@@ -221,7 +242,7 @@ export const ExpensesScreen = () => {
                   options={[
                     { label: "All Bikes", value: "all" },
                     ...bikes.map((bike) => ({
-                      label: bike.name,
+                      label: `${bike.brand || ""} ${bike.model}`.trim(),
                       value: bike.id,
                     })),
                   ]}
@@ -319,7 +340,7 @@ export const ExpensesScreen = () => {
           label="Bike *"
           value={formData.bike_id}
           options={bikes.map((bike) => ({
-            label: `${bike.name} - ${bike.registration}`,
+            label: bike.model,
             value: bike.id,
           }))}
           onValueChange={(value) =>

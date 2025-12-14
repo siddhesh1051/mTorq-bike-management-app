@@ -5,18 +5,14 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
-  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Calendar, Plus, IndianRupee } from "lucide-react-native";
+import { TrendingUp, PieChart } from "lucide-react-native";
 import { Card, CardHeader, CardContent } from "../components";
 import { DashboardStats } from "../types";
 import apiService from "../services/api";
-import { format } from "date-fns";
-import { useNavigation } from "@react-navigation/native";
 
-export const DashboardScreen = () => {
-  const navigation = useNavigation();
+export const AnalyticsScreen = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,7 +26,7 @@ export const DashboardScreen = () => {
       const data = await apiService.getDashboardStats();
       setStats(data);
     } catch (error) {
-      console.error("Failed to load dashboard data:", error);
+      console.error("Failed to load analytics data:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -42,12 +38,19 @@ export const DashboardScreen = () => {
     fetchStats();
   };
 
+  const categoryColors: Record<string, string> = {
+    Fuel: "#60a5fa",
+    Service: "#f87171",
+    Insurance: "#4ade80",
+    Other: "#fbbf24",
+  };
+
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#ccfbf1" />
-          <Text className="text-zinc-400 mt-4">Loading dashboard...</Text>
+          <Text className="text-zinc-400 mt-4">Loading analytics...</Text>
         </View>
       </SafeAreaView>
     );
@@ -72,20 +75,20 @@ export const DashboardScreen = () => {
       >
         {/* Header */}
         <View className="mb-6">
-          <Text className="text-white text-4xl font-bold">Dashboard</Text>
+          <Text className="text-white text-4xl font-bold">Analytics</Text>
           <Text className="text-zinc-400 mt-2">
-            Track your bike expenses at a glance
+            Insights into your spending patterns
           </Text>
         </View>
 
-        {/* Total Expenses */}
+        {/* Total Expenses Card */}
         <Card style={{ marginBottom: 16 }}>
           <CardHeader>
             <View className="flex-row justify-between items-center">
               <Text className="text-zinc-400 text-xs uppercase tracking-wider">
                 Total Expenses
               </Text>
-              <IndianRupee color="#ccfbf1" size={20} />
+              <PieChart color="#ccfbf1" size={20} />
             </View>
           </CardHeader>
           <CardContent>
@@ -95,62 +98,53 @@ export const DashboardScreen = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Expenses */}
+        {/* Category Breakdown */}
         <Card style={{ marginBottom: 16 }}>
           <CardHeader>
             <View className="flex-row items-center">
-              <Calendar color="#ccfbf1" size={20} />
+              <TrendingUp color="#ccfbf1" size={20} />
               <Text className="text-white text-xl font-semibold ml-2">
-                Recent Expenses
+                Category Breakdown
               </Text>
             </View>
           </CardHeader>
           <CardContent>
-            {stats?.recent_expenses && stats.recent_expenses.length > 0 ? (
+            {stats?.category_breakdown &&
+            Object.keys(stats.category_breakdown).length > 0 ? (
               <View>
-                {stats.recent_expenses.map((expense) => (
-                  <View
-                    key={expense.id}
-                    className="flex-row justify-between items-center p-3 bg-zinc-900/50 rounded border border-white/5 mb-2"
-                  >
-                    <View className="flex-1">
-                      <Text className="text-white font-medium">
-                        {expense.type}
-                      </Text>
-                      <Text className="text-zinc-500 text-sm font-mono">
-                        {format(new Date(expense.date), "dd MMM yyyy")}
-                      </Text>
+                {Object.entries(stats.category_breakdown).map(
+                  ([category, amount]) => (
+                    <View key={category} className="mb-4">
+                      <View className="flex-row justify-between mb-2">
+                        <Text className="text-zinc-300 font-medium">
+                          {category}
+                        </Text>
+                        <Text className="text-white font-bold font-mono">
+                          ₹{amount.toLocaleString("en-IN")}
+                        </Text>
+                      </View>
+                      <View className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                        <View
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(amount / stats.total_expenses) * 100}%`,
+                            backgroundColor:
+                              categoryColors[category] || "#fbbf24",
+                          }}
+                        />
+                      </View>
                     </View>
-                    <Text className="text-primary font-bold font-mono text-lg">
-                      ₹{expense.amount.toLocaleString("en-IN")}
-                    </Text>
-                  </View>
-                ))}
+                  )
+                )}
               </View>
             ) : (
               <Text className="text-zinc-500 text-center py-8">
-                No recent expenses
+                No expenses recorded yet
               </Text>
             )}
           </CardContent>
         </Card>
       </ScrollView>
-
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        className="absolute bottom-4 right-4 bg-primary rounded-full w-16 h-16 items-center justify-center shadow-2xl"
-        onPress={() => navigation.navigate("Add" as never)}
-        activeOpacity={0.8}
-        style={{
-          shadowColor: "#ccfbf1",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 8,
-        }}
-      >
-        <Plus color="#115e59" size={28} strokeWidth={3} />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };

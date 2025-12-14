@@ -271,25 +271,22 @@ BIKE_BRANDS_MODELS = {
 
 
 class BikeCreate(BaseModel):
-    name: str
-    brand: BikeBrand
-    model: BikeModel
-    registration: str
+    brand: str
+    model: str
+    registration: Optional[str] = None
 
 
 class BikeResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
     user_id: str
-    name: str
     brand: Optional[str] = None
     model: str
-    registration: str
+    registration: Optional[str] = None
     created_at: str
 
 
 class BikeUpdate(BaseModel):
-    name: Optional[str] = None
-    brand: Optional[BikeBrand] = None
-    model: Optional[BikeModel] = None
+    brand: Optional[str] = None
+    model: Optional[str] = None
     registration: Optional[str] = None

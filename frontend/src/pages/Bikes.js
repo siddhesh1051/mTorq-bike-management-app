@@ -24,7 +24,7 @@ const Bikes = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBike, setEditingBike] = useState(null);
   const [formData, setFormData] = useState({
-    name: "",
+    brand: "",
     model: "",
     registration: "",
   });
@@ -51,7 +51,7 @@ const Bikes = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("token");
-      
+
       if (editingBike) {
         // Update bike
         await axios.put(`${API}/bikes/${editingBike.id}`, formData, {
@@ -65,30 +65,32 @@ const Bikes = () => {
         });
         toast.success("Bike added successfully!");
       }
-      
+
       setDialogOpen(false);
-      setFormData({ name: "", model: "", registration: "" });
+      setFormData({ brand: "", model: "", registration: "" });
       setEditingBike(null);
       fetchBikes();
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail || "Failed to save bike"
-      );
+      toast.error(error.response?.data?.detail || "Failed to save bike");
     }
   };
 
   const handleEdit = (bike) => {
     setEditingBike(bike);
     setFormData({
-      name: bike.name,
+      brand: bike.brand || "",
       model: bike.model,
-      registration: bike.registration,
+      registration: bike.registration || "",
     });
     setDialogOpen(true);
   };
 
   const handleDelete = async (bikeId) => {
-    if (!window.confirm("Are you sure you want to delete this bike? All associated expenses will also be deleted.")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this bike? All associated expenses will also be deleted."
+      )
+    ) {
       return;
     }
 
@@ -107,7 +109,7 @@ const Bikes = () => {
   const handleDialogClose = () => {
     setDialogOpen(false);
     setEditingBike(null);
-    setFormData({ name: "", model: "", registration: "" });
+    setFormData({ brand: "", model: "", registration: "" });
   };
 
   return (
@@ -144,13 +146,13 @@ const Bikes = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label className="text-zinc-300">Bike Name *</Label>
+                <Label className="text-zinc-300">Brand *</Label>
                 <Input
-                  data-testid="bike-name-input"
-                  placeholder="e.g., My Royal Enfield"
-                  value={formData.name}
+                  data-testid="bike-brand-input"
+                  placeholder="e.g., Royal Enfield"
+                  value={formData.brand}
                   onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
+                    setFormData({ ...formData, brand: e.target.value })
                   }
                   className="h-12 bg-zinc-900/50 border-white/10 text-white placeholder:text-zinc-500"
                   required
@@ -170,7 +172,9 @@ const Bikes = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-zinc-300">Registration Number *</Label>
+                <Label className="text-zinc-300">
+                  Registration Number (Optional)
+                </Label>
                 <Input
                   data-testid="bike-registration-input"
                   placeholder="e.g., DL-01-AB-1234"
@@ -179,7 +183,6 @@ const Bikes = () => {
                     setFormData({ ...formData, registration: e.target.value })
                   }
                   className="h-12 bg-zinc-900/50 border-white/10 text-white placeholder:text-zinc-500"
-                  required
                 />
               </div>
               <Button
@@ -216,34 +219,38 @@ const Bikes = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="bikes-list">
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          data-testid="bikes-list"
+        >
           {bikes.map((bike) => (
-            <Card key={bike.id} className="glass border-white/10 group hover:border-white/20 transition-all duration-300">
+            <Card
+              key={bike.id}
+              className="glass border-white/10 group hover:border-white/20 transition-all duration-300"
+            >
               <CardHeader>
                 <div className="aspect-video relative overflow-hidden rounded bg-zinc-800 mb-4">
                   <img
                     src="https://images.unsplash.com/photo-1589963575227-08d8ea840e85?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwyfHxtb3RvcmN5Y2xlJTIwb24lMjB3aW5kaW5nJTIwcm9hZCUyMGRhcmslMjBtb29keXxlbnwwfHx8fDE3NjU1NjYyNTl8MA&ixlib=rb-4.1.0&q=85"
-                    alt={bike.name}
+                    alt={`${bike.brand || ""} ${bike.model}`}
                     className="w-full h-full object-cover filter grayscale contrast-125"
                   />
                 </div>
                 <CardTitle className="text-xl font-heading text-white">
-                  {bike.name}
+                  {bike.brand || ""} {bike.model}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-                    Model
+                {bike.registration && (
+                  <div>
+                    <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
+                      Registration Number
+                    </div>
+                    <div className="text-zinc-300 font-mono text-lg">
+                      {bike.registration}
+                    </div>
                   </div>
-                  <div className="text-zinc-300 font-medium">{bike.model}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-                    Registration
-                  </div>
-                  <div className="text-zinc-300 font-mono">{bike.registration}</div>
-                </div>
+                )}
                 <div className="flex gap-2 pt-2">
                   <Button
                     data-testid={`edit-bike-${bike.id}`}

@@ -80,7 +80,7 @@ export const Toast: React.FC<ToastProps> = ({
   };
 
   const getIcon = () => {
-    const iconProps = { size: 24, color: "#ffffff" };
+    const iconProps = { size: 26, color: "#ffffff", strokeWidth: 2.5 };
     switch (type) {
       case "success":
         return <CheckCircle {...iconProps} />;
@@ -112,7 +112,7 @@ export const Toast: React.FC<ToastProps> = ({
         transform: [{ translateY }],
         opacity,
         position: "absolute",
-        top: 50,
+        top: 60,
         left: 16,
         right: 16,
         zIndex: 9999,
@@ -125,33 +125,36 @@ export const Toast: React.FC<ToastProps> = ({
         className="rounded-2xl shadow-2xl"
         style={{
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.5,
-          shadowRadius: 16,
-          elevation: 10,
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.6,
+          shadowRadius: 20,
+          elevation: 12,
         }}
       >
-        <View className="flex-row items-start p-4 space-x-3">
-          <View className="mt-0.5">{getIcon()}</View>
-          <View className="flex-1 mr-2">
-            <Text className="text-white font-bold text-base mb-0.5">
+        <View className="flex-row items-start p-5">
+          <View className="mt-1 mr-4">{getIcon()}</View>
+          <View className="flex-1 mr-3">
+            <Text className="text-white font-bold text-lg mb-1.5 leading-6">
               {title}
             </Text>
             {message && (
-              <Text className="text-white/90 text-sm leading-5">{message}</Text>
+              <Text className="text-white/95 text-base leading-6 mt-1">
+                {typeof message === "string"
+                  ? message
+                  : JSON.stringify(message)}
+              </Text>
             )}
           </View>
           <TouchableOpacity
             onPress={handleDismiss}
-            className="bg-white/20 rounded-full p-1"
+            className="bg-white/20 rounded-full p-1.5 ml-2"
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={18} color="#ffffff" />
+            <X size={20} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
     </Animated.View>
   );
 };
-
-

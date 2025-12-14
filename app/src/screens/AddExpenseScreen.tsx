@@ -43,8 +43,13 @@ export const AddExpenseScreen = () => {
     try {
       const data = await apiService.getBikes();
       setBikes(data);
-    } catch (error) {
-      showError("Load Failed", "Failed to load bikes");
+    } catch (error: any) {
+      console.error("Error loading bikes:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to load bikes";
+      showError("Load Failed", errorMessage);
     }
   };
 
@@ -62,10 +67,12 @@ export const AddExpenseScreen = () => {
         navigation.goBack();
       }, 1000);
     } catch (error: any) {
-      showError(
-        "Add Failed",
-        error.response?.data?.detail || "Failed to add expense"
-      );
+      console.error("Error adding expense:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to add expense";
+      showError("Add Failed", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -79,7 +86,11 @@ export const AddExpenseScreen = () => {
       >
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 20,
+            paddingBottom: 80,
+          }}
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
@@ -107,7 +118,7 @@ export const AddExpenseScreen = () => {
                 placeholder="Select a bike"
                 value={formData.bike_id}
                 options={bikes.map((bike) => ({
-                  label: `${bike.name} - ${bike.registration}`,
+                  label: bike.model,
                   value: bike.id,
                 }))}
                 onValueChange={(value) =>

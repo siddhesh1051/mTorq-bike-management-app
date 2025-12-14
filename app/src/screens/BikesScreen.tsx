@@ -36,7 +36,6 @@ export const BikesScreen = () => {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [bikeToDelete, setBikeToDelete] = useState<Bike | null>(null);
   const [formData, setFormData] = useState<BikeCreate>({
-    name: "",
     brand: "",
     model: "",
     registration: "",
@@ -60,9 +59,13 @@ export const BikesScreen = () => {
     try {
       const data = await apiService.getBikes();
       setBikes(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load bikes:", error);
-      showError("Load Failed", "Failed to load bikes");
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to load bikes";
+      showError("Load Failed", errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -75,13 +78,8 @@ export const BikesScreen = () => {
   };
 
   const handleSubmit = async () => {
-    if (
-      !formData.name ||
-      !formData.brand ||
-      !formData.model ||
-      !formData.registration
-    ) {
-      showError("Missing Fields", "Please fill in all fields");
+    if (!formData.brand || !formData.model) {
+      showError("Missing Fields", "Please fill in brand and model");
       return;
     }
 
@@ -98,10 +96,12 @@ export const BikesScreen = () => {
       resetForm();
       fetchBikes();
     } catch (error: any) {
-      showError(
-        "Save Failed",
-        error.response?.data?.detail || "Failed to save bike"
-      );
+      console.error("Error saving bike:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to save bike";
+      showError("Save Failed", errorMessage);
     }
   };
 
@@ -109,10 +109,9 @@ export const BikesScreen = () => {
     setEditingBike(bike);
     const brand = bike.brand || "";
     setFormData({
-      name: bike.name,
       brand: brand,
       model: bike.model,
-      registration: bike.registration,
+      registration: bike.registration || "",
     });
     if (brand && brandsModels[brand]) {
       setAvailableModels(brandsModels[brand]);
@@ -132,8 +131,13 @@ export const BikesScreen = () => {
       await apiService.deleteBike(bikeToDelete.id);
       showSuccess("Bike Deleted", "Bike deleted successfully!");
       fetchBikes();
-    } catch (error) {
-      showError("Delete Failed", "Failed to delete bike");
+    } catch (error: any) {
+      console.error("Error deleting bike:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to delete bike";
+      showError("Delete Failed", errorMessage);
     } finally {
       setDeleteDialogVisible(false);
       setBikeToDelete(null);
@@ -146,7 +150,7 @@ export const BikesScreen = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: "", brand: "", model: "", registration: "" });
+    setFormData({ brand: "", model: "", registration: "" });
     setAvailableModels([]);
     setEditingBike(null);
   };
@@ -176,7 +180,7 @@ export const BikesScreen = () => {
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1">
         {/* Header */}
-        <View className="flex-row justify-between items-center px-4 py-3 border-b border-white/10">
+        <View className="flex-row justify-between items-center px-5 py-4 border-b border-white/10">
           <View>
             <Text className="text-white text-3xl font-bold">My Bikes</Text>
             <Text className="text-zinc-400 mt-1">Manage your bikes</Text>
@@ -192,7 +196,11 @@ export const BikesScreen = () => {
         {/* Bikes List */}
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 20,
+            paddingBottom: 80,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -221,7 +229,7 @@ export const BikesScreen = () => {
             bikes.map((bike) => (
               <Card key={bike.id} style={{ marginBottom: 16 }}>
                 <CardHeader>
-                  <View className="aspect-video rounded bg-zinc-800 mb-4 overflow-hidden">
+                  <View className="aspect-video rounded bg-zinc-800 mb-4 overflow-hidden items-center justify-center">
                     <Image
                       source={{
                         uri: "https://images.unsplash.com/photo-1589963575227-08d8ea840e85?crop=entropy&cs=srgb&fm=jpg&q=85",
@@ -231,36 +239,20 @@ export const BikesScreen = () => {
                     />
                   </View>
                   <Text className="text-white text-xl font-bold">
-                    {bike.name}
+                    {bike.brand} {bike.model}
                   </Text>
                 </CardHeader>
                 <CardContent>
-                  {bike.brand && (
-                    <View className="mb-3">
+                  {bike.registration && (
+                    <View className="mb-4">
                       <Text className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-                        Brand
+                        Registration Number
                       </Text>
-                      <Text className="text-zinc-300 font-medium">
-                        {bike.brand}
+                      <Text className="text-zinc-300 font-mono text-lg">
+                        {bike.registration}
                       </Text>
                     </View>
                   )}
-                  <View className="mb-3">
-                    <Text className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-                      Model
-                    </Text>
-                    <Text className="text-zinc-300 font-medium">
-                      {bike.model}
-                    </Text>
-                  </View>
-                  <View className="mb-4">
-                    <Text className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-                      Registration
-                    </Text>
-                    <Text className="text-zinc-300 font-mono">
-                      {bike.registration}
-                    </Text>
-                  </View>
                   <View className="flex-row gap-2">
                     <TouchableOpacity
                       className="flex-1 flex-row items-center justify-center border border-white/10 rounded-full h-10"
@@ -295,13 +287,6 @@ export const BikesScreen = () => {
             : "Add a new bike to track expenses"
         }
       >
-        <Input
-          label="Bike Name *"
-          placeholder="e.g., My Royal Enfield"
-          value={formData.name}
-          onChangeText={(text) => setFormData({ ...formData, name: text })}
-        />
-
         <Picker
           label="Brand *"
           placeholder="Select brand"
@@ -325,7 +310,7 @@ export const BikesScreen = () => {
         />
 
         <Input
-          label="Registration Number *"
+          label="Registration Number (Optional)"
           placeholder="e.g., DL-01-AB-1234"
           value={formData.registration}
           onChangeText={(text) =>
