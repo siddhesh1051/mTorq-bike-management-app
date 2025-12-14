@@ -1,7 +1,7 @@
 {
   "short_name": "mTorq",
-  "name": "mTorq - Expense Tracker",
-  "description": "A product of emergent.sh - Track your bike expenses",
+  "name": "mTorq - Bike Management",
+  "description": "A product of mTorq - Track your bike expenses",
   "icons": [
     {
       "src": "favicon.svg",
