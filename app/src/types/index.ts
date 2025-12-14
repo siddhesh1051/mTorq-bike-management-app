@@ -24,21 +24,30 @@ export interface SignupCredentials {
 export interface Bike {
   id: string;
   user_id: string;
-  name: string;
   brand?: string;
   model: string;
-  registration: string;
+  registration?: string;
   created_at: string;
 }
 
 export interface BikeCreate {
-  name: string;
   brand: string;
   model: string;
-  registration: string;
+  registration?: string;
 }
 
-export type ExpenseType = 'Fuel' | 'Service' | 'Insurance' | 'Accessories' | 'Spare Parts' | 'Tyres' | 'Battery' | 'Toll' | 'Parking' | 'Washing' | 'Other';
+export type ExpenseType =
+  | "Fuel"
+  | "Service"
+  | "Insurance"
+  | "Accessories"
+  | "Spare Parts"
+  | "Tyres"
+  | "Battery"
+  | "Toll"
+  | "Parking"
+  | "Washing"
+  | "Other";
 
 export interface Expense {
   id: string;

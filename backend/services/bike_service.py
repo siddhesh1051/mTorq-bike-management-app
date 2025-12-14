@@ -13,12 +13,14 @@ class BikeService:
         bike_doc = {
             "id": bike_id,
             "user_id": user_id,
-            "name": bike_data.name,
-            "brand": bike_data.brand.value,
-            "model": bike_data.model.value,
-            "registration": bike_data.registration,
+            "brand": bike_data.brand,
+            "model": bike_data.model,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
+        
+        # Add registration only if provided
+        if bike_data.registration:
+            bike_doc["registration"] = bike_data.registration
 
         await db.bikes.insert_one(bike_doc)
         return bike_doc
@@ -44,10 +46,7 @@ class BikeService:
         update_data = {}
         for key, value in bike_data.model_dump().items():
             if value is not None:
-                if key in ['brand', 'model']:
-                    update_data[key] = value.value
-                else:
-                    update_data[key] = value
+                update_data[key] = value
 
         if update_data:
             await db.bikes.update_one({"id": bike_id}, {"$set": update_data})
