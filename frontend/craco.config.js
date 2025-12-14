@@ -1,5 +1,6 @@
 // craco.config.js
 const path = require("path");
+const { GenerateSW } = require("workbox-webpack-plugin");
 require("dotenv").config();
 
 // Environment variable overrides
@@ -32,15 +33,14 @@ if (config.enableHealthCheck) {
 const webpackConfig = {
   webpack: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      "@": path.resolve(__dirname, "src"),
     },
     configure: (webpackConfig) => {
-
       // Disable hot reload completely if environment variable is set
       if (config.disableHotReload) {
         // Remove hot reload related plugins
-        webpackConfig.plugins = webpackConfig.plugins.filter(plugin => {
-          return !(plugin.constructor.name === 'HotModuleReplacementPlugin');
+        webpackConfig.plugins = webpackConfig.plugins.filter((plugin) => {
+          return !(plugin.constructor.name === "HotModuleReplacementPlugin");
         });
 
         // Disable watch mode
@@ -53,12 +53,12 @@ const webpackConfig = {
         webpackConfig.watchOptions = {
           ...webpackConfig.watchOptions,
           ignored: [
-            '**/node_modules/**',
-            '**/.git/**',
-            '**/build/**',
-            '**/dist/**',
-            '**/coverage/**',
-            '**/public/**',
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/build/**",
+            "**/dist/**",
+            "**/coverage/**",
+            "**/public/**",
           ],
         };
       }
@@ -66,6 +66,53 @@ const webpackConfig = {
       // Add health check plugin to webpack if enabled
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);
+      }
+
+      // Add Workbox plugin for PWA service worker (only in production)
+      if (process.env.NODE_ENV === "production") {
+        webpackConfig.plugins.push(
+          new GenerateSW({
+            clientsClaim: true,
+            skipWaiting: true,
+            maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+            runtimeCaching: [
+              {
+                urlPattern:
+                  /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
+                handler: "CacheFirst",
+                options: {
+                  cacheName: "google-fonts",
+                  expiration: {
+                    maxEntries: 4,
+                    maxAgeSeconds: 365 * 24 * 60 * 60, // 365 days
+                  },
+                },
+              },
+              {
+                urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+                handler: "CacheFirst",
+                options: {
+                  cacheName: "images",
+                  expiration: {
+                    maxEntries: 60,
+                    maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+                  },
+                },
+              },
+              {
+                urlPattern: /\/api\/.*/i,
+                handler: "NetworkFirst",
+                options: {
+                  cacheName: "api-cache",
+                  expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 5 * 60, // 5 minutes
+                  },
+                },
+              },
+            ],
+          })
+        );
       }
 
       return webpackConfig;
@@ -89,7 +136,11 @@ if (config.enableVisualEdits || config.enableHealthCheck) {
     }
 
     // Add health check endpoints if enabled
-    if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
+    if (
+      config.enableHealthCheck &&
+      setupHealthEndpoints &&
+      healthPluginInstance
+    ) {
       const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
 
       devServerConfig.setupMiddlewares = (middlewares, devServer) => {
