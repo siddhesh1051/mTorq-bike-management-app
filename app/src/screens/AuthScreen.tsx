@@ -1,30 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bike } from 'lucide-react-native';
-import { Card, CardHeader, CardContent, Input, Button } from '../components';
-import { useAuth } from '../context/AuthContext';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Bike } from "lucide-react-native";
+import { Card, CardHeader, CardContent, Input, Button } from "../components";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 
 export const AuthScreen = () => {
   const { login, signup } = useAuth();
+  const { showError } = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    name: '',
+    email: "",
+    password: "",
+    name: "",
   });
 
   const handleSubmit = async () => {
     if (!formData.email || !formData.password || (!isLogin && !formData.name)) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showError("Missing Fields", "Please fill in all fields");
       return;
     }
 
@@ -43,20 +44,21 @@ export const AuthScreen = () => {
         });
       }
     } catch (error: any) {
-      console.log('Auth error:', error);
-      console.log('Error message:', error.message);
-      console.log('Error response:', error.response?.data);
-      
-      let errorMessage = 'An error occurred. Please try again.';
+      console.log("Auth error:", error);
+      console.log("Error message:", error.message);
+      console.log("Error response:", error.response?.data);
+
+      let errorMessage = "An error occurred. Please try again.";
       if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
-      } else if (error.message?.includes('Network Error')) {
-        errorMessage = 'Cannot connect to server. Make sure backend is running and your device is on the same network.';
+      } else if (error.message?.includes("Network Error")) {
+        errorMessage =
+          "Cannot connect to server. Make sure backend is running and your device is on the same network.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
-      Alert.alert('Error', errorMessage);
+
+      showError("Authentication Error", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -65,11 +67,15 @@ export const AuthScreen = () => {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 16 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            padding: 16,
+          }}
           keyboardShouldPersistTaps="handled"
         >
           <Card style={{ marginBottom: 16 }}>
@@ -79,12 +85,12 @@ export const AuthScreen = () => {
                   <Bike color="#ccfbf1" size={32} />
                 </View>
                 <Text className="text-white text-3xl font-bold text-center">
-                  {isLogin ? 'Welcome Back' : 'Create Account'}
+                  {isLogin ? "Welcome Back" : "Create Account"}
                 </Text>
                 <Text className="text-zinc-400 text-center mt-2">
                   {isLogin
-                    ? 'Sign in to track your bike expenses'
-                    : 'Start tracking your bike expenses today'}
+                    ? "Sign in to track your bike expenses"
+                    : "Start tracking your bike expenses today"}
                 </Text>
               </View>
             </CardHeader>
@@ -95,7 +101,9 @@ export const AuthScreen = () => {
                   label="Name"
                   placeholder="Enter your name"
                   value={formData.name}
-                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, name: text })
+                  }
                   autoCapitalize="words"
                 />
               )}
@@ -104,7 +112,9 @@ export const AuthScreen = () => {
                 label="Email"
                 placeholder="Enter your email"
                 value={formData.email}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, email: text })
+                }
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -113,13 +123,17 @@ export const AuthScreen = () => {
                 label="Password"
                 placeholder="Enter your password"
                 value={formData.password}
-                onChangeText={(text) => setFormData({ ...formData, password: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, password: text })
+                }
                 secureTextEntry
                 autoCapitalize="none"
               />
 
               <Button
-                title={loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
+                title={
+                  loading ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"
+                }
                 onPress={handleSubmit}
                 loading={loading}
                 style={{ marginTop: 8 }}
@@ -132,9 +146,9 @@ export const AuthScreen = () => {
                 >
                   {isLogin
                     ? "Don't have an account? "
-                    : 'Already have an account? '}
+                    : "Already have an account? "}
                   <Text className="text-primary">
-                    {isLogin ? 'Sign up' : 'Sign in'}
+                    {isLogin ? "Sign up" : "Sign in"}
                   </Text>
                 </Text>
               </View>
