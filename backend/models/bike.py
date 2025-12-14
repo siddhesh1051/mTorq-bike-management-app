@@ -189,7 +189,7 @@ class BikeModel(str, Enum):
 BIKE_BRANDS_MODELS = {
     BikeBrand.ROYAL_ENFIELD: [
         BikeModel.CLASSIC_350, BikeModel.CLASSIC_500, BikeModel.BULLET_350,
-        BikeModel.METEOR_350, BikeModel.HUNTER_350, BikeModel.SCRAM_411,
+        BikeModel.METEOR_350, BikeModel.HUNTER_350, BikeModel.SCRAM_440,
         BikeModel.HIMALAYAN, BikeModel.INTERCEPTOR_650, BikeModel.CONTINENTAL_GT_650,
         BikeModel.SUPER_METEOR_650, BikeModel.SHOTGUN_650, BikeModel.GUERRILLA_450
     ],
@@ -199,6 +199,7 @@ BIKE_BRANDS_MODELS = {
         BikeModel.NIGHTSTER, BikeModel.PAN_AMERICA
     ],
     BikeBrand.TRIUMPH: [
+        BikeModel.SPEED_T4,
         BikeModel.SPEED_400, BikeModel.SCRAMBLER_400_X, BikeModel.TRIDENT_660,
         BikeModel.TIGER_900, BikeModel.STREET_TRIPLE, BikeModel.SPEED_TRIPLE,
         BikeModel.BONNEVILLE_T100, BikeModel.BONNEVILLE_T120, BikeModel.ROCKET_3
