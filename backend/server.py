@@ -28,6 +28,16 @@ ALGORITHM = "HS256"
 
 # Create the main app
 app = FastAPI()
+
+# Add CORS middleware FIRST (before any routers)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify your frontend domains
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 api_router = APIRouter(prefix="/api")
 
 # ===== MODELS =====
@@ -339,14 +349,6 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
 
 # Include the router in the main app
 app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Configure logging
 logging.basicConfig(
