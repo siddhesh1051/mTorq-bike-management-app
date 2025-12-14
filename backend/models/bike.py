@@ -32,7 +32,7 @@ class BikeModel(str, Enum):
     BULLET_350 = "Bullet 350"
     METEOR_350 = "Meteor 350"
     HUNTER_350 = "Hunter 350"
-    SCRAM_411 = "Scram 411"
+    SCRAM_440 = "Scram 440"
     HIMALAYAN = "Himalayan"
     INTERCEPTOR_650 = "Interceptor 650"
     CONTINENTAL_GT_650 = "Continental GT 650"
@@ -51,6 +51,7 @@ class BikeModel(str, Enum):
     PAN_AMERICA = "Pan America"
     
     # Triumph
+    SPEED_T4 = "Speed T4"
     SPEED_400 = "Speed 400"
     SCRAMBLER_400_X = "Scrambler 400 X"
     TRIDENT_660 = "Trident 660"
