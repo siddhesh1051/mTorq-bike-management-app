@@ -59,7 +59,7 @@ export const AuthScreen = () => {
         className="flex-1"
       >
         <ScrollView
-          contentContainerClassName="flex-grow justify-center p-4"
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 16 }}
           keyboardShouldPersistTaps="handled"
         >
           <Card style={{ marginBottom: 16 }}>
