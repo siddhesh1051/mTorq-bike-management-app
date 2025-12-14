@@ -70,10 +70,21 @@ const webpackConfig = {
 
       // Add Workbox plugin for PWA service worker (only in production)
       if (process.env.NODE_ENV === "production") {
+        // Remove any existing Workbox plugins to avoid conflicts
+        webpackConfig.plugins = webpackConfig.plugins.filter(
+          (plugin) =>
+            !(
+              plugin.constructor.name === "GenerateSW" ||
+              plugin.constructor.name === "InjectManifest"
+            )
+        );
+
+        // Add our Workbox plugin
         webpackConfig.plugins.push(
           new GenerateSW({
             clientsClaim: true,
             skipWaiting: true,
+            sourcemap: false, // Disable source maps to avoid conflicts
             maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
             runtimeCaching: [
               {
