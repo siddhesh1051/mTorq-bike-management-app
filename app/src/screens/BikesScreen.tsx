@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   TouchableOpacity,
   Image,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bike as BikeIcon, Plus, Edit, Trash2 } from 'lucide-react-native';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Bike as BikeIcon, Plus, Edit, Trash2 } from "lucide-react-native";
 import {
   Card,
   CardHeader,
@@ -19,11 +18,14 @@ import {
   Input,
   ModalDialog,
   Picker,
-} from '../components';
-import { Bike, BikeCreate, BrandModelsMap } from '../types';
-import apiService from '../services/api';
+  ConfirmDialog,
+} from "../components";
+import { Bike, BikeCreate, BrandModelsMap } from "../types";
+import apiService from "../services/api";
+import { useToast } from "../context/ToastContext";
 
 export const BikesScreen = () => {
+  const { showSuccess, showError } = useToast();
   const [bikes, setBikes] = useState<Bike[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -31,11 +33,12 @@ export const BikesScreen = () => {
   const [editingBike, setEditingBike] = useState<Bike | null>(null);
   const [brandsModels, setBrandsModels] = useState<BrandModelsMap>({});
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [bikeToDelete, setBikeToDelete] = useState<Bike | null>(null);
   const [formData, setFormData] = useState<BikeCreate>({
-    name: '',
-    brand: '',
-    model: '',
-    registration: '',
+    brand: "",
+    model: "",
+    registration: "",
   });
 
   useEffect(() => {
@@ -48,7 +51,7 @@ export const BikesScreen = () => {
       const data = await apiService.getBrandsWithModels();
       setBrandsModels(data);
     } catch (error) {
-      console.error('Failed to load brands/models:', error);
+      console.error("Failed to load brands/models:", error);
     }
   };
 
@@ -56,9 +59,13 @@ export const BikesScreen = () => {
     try {
       const data = await apiService.getBikes();
       setBikes(data);
-    } catch (error) {
-      console.error('Failed to load bikes:', error);
-      Alert.alert('Error', 'Failed to load bikes');
+    } catch (error: any) {
+      console.error("Failed to load bikes:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to load bikes";
+      showError("Load Failed", errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -71,36 +78,40 @@ export const BikesScreen = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.brand || !formData.model || !formData.registration) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!formData.brand || !formData.model) {
+      showError("Missing Fields", "Please fill in brand and model");
       return;
     }
 
     try {
       if (editingBike) {
         await apiService.updateBike(editingBike.id, formData);
-        Alert.alert('Success', 'Bike updated successfully!');
+        showSuccess("Bike Updated", "Bike updated successfully!");
       } else {
         await apiService.createBike(formData);
-        Alert.alert('Success', 'Bike added successfully!');
+        showSuccess("Bike Added", "Bike added successfully!");
       }
-      
+
       setModalVisible(false);
       resetForm();
       fetchBikes();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to save bike');
+      console.error("Error saving bike:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to save bike";
+      showError("Save Failed", errorMessage);
     }
   };
 
   const handleEdit = (bike: Bike) => {
     setEditingBike(bike);
-    const brand = bike.brand || '';
+    const brand = bike.brand || "";
     setFormData({
-      name: bike.name,
       brand: brand,
       model: bike.model,
-      registration: bike.registration,
+      registration: bike.registration || "",
     });
     if (brand && brandsModels[brand]) {
       setAvailableModels(brandsModels[brand]);
@@ -109,36 +120,43 @@ export const BikesScreen = () => {
   };
 
   const handleDelete = (bike: Bike) => {
-    Alert.alert(
-      'Delete Bike',
-      'Are you sure you want to delete this bike? All associated expenses will also be deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiService.deleteBike(bike.id);
-              Alert.alert('Success', 'Bike deleted successfully!');
-              fetchBikes();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete bike');
-            }
-          },
-        },
-      ]
-    );
+    setBikeToDelete(bike);
+    setDeleteDialogVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!bikeToDelete) return;
+
+    try {
+      await apiService.deleteBike(bikeToDelete.id);
+      showSuccess("Bike Deleted", "Bike deleted successfully!");
+      fetchBikes();
+    } catch (error: any) {
+      console.error("Error deleting bike:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to delete bike";
+      showError("Delete Failed", errorMessage);
+    } finally {
+      setDeleteDialogVisible(false);
+      setBikeToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogVisible(false);
+    setBikeToDelete(null);
   };
 
   const resetForm = () => {
-    setFormData({ name: '', brand: '', model: '', registration: '' });
+    setFormData({ brand: "", model: "", registration: "" });
     setAvailableModels([]);
     setEditingBike(null);
   };
 
   const handleBrandChange = (brand: string) => {
-    setFormData({ ...formData, brand, model: '' });
+    setFormData({ ...formData, brand, model: "" });
     setAvailableModels(brandsModels[brand] || []);
   };
 
@@ -162,7 +180,7 @@ export const BikesScreen = () => {
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1">
         {/* Header */}
-        <View className="flex-row justify-between items-center px-4 py-3 border-b border-white/10">
+        <View className="flex-row justify-between items-center px-5 py-4 border-b border-white/10">
           <View>
             <Text className="text-white text-3xl font-bold">My Bikes</Text>
             <Text className="text-zinc-400 mt-1">Manage your bikes</Text>
@@ -178,7 +196,11 @@ export const BikesScreen = () => {
         {/* Bikes List */}
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 20,
+            paddingBottom: 80,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -207,38 +229,30 @@ export const BikesScreen = () => {
             bikes.map((bike) => (
               <Card key={bike.id} style={{ marginBottom: 16 }}>
                 <CardHeader>
-                  <View className="aspect-video rounded bg-zinc-800 mb-4 overflow-hidden">
+                  <View className="aspect-video rounded bg-zinc-800 mb-4 overflow-hidden items-center justify-center">
                     <Image
                       source={{
-                        uri: 'https://images.unsplash.com/photo-1589963575227-08d8ea840e85?crop=entropy&cs=srgb&fm=jpg&q=85',
+                        uri: "https://images.unsplash.com/photo-1589963575227-08d8ea840e85?crop=entropy&cs=srgb&fm=jpg&q=85",
                       }}
                       className="w-full h-full"
                       style={{ opacity: 0.3 }}
                     />
                   </View>
-                  <Text className="text-white text-xl font-bold">{bike.name}</Text>
+                  <Text className="text-white text-xl font-bold">
+                    {bike.brand} {bike.model}
+                  </Text>
                 </CardHeader>
                 <CardContent>
-                  {bike.brand && (
-                    <View className="mb-3">
+                  {bike.registration && (
+                    <View className="mb-4">
                       <Text className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-                        Brand
+                        Registration Number
                       </Text>
-                      <Text className="text-zinc-300 font-medium">{bike.brand}</Text>
+                      <Text className="text-zinc-300 font-mono text-lg">
+                        {bike.registration}
+                      </Text>
                     </View>
                   )}
-                  <View className="mb-3">
-                    <Text className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-                      Model
-                    </Text>
-                    <Text className="text-zinc-300 font-medium">{bike.model}</Text>
-                  </View>
-                  <View className="mb-4">
-                    <Text className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-                      Registration
-                    </Text>
-                    <Text className="text-zinc-300 font-mono">{bike.registration}</Text>
-                  </View>
                   <View className="flex-row gap-2">
                     <TouchableOpacity
                       className="flex-1 flex-row items-center justify-center border border-white/10 rounded-full h-10"
@@ -266,18 +280,13 @@ export const BikesScreen = () => {
       <ModalDialog
         visible={modalVisible}
         onClose={handleModalClose}
-        title={editingBike ? 'Edit Bike' : 'Add New Bike'}
+        title={editingBike ? "Edit Bike" : "Add New Bike"}
         description={
-          editingBike ? 'Update your bike details' : 'Add a new bike to track expenses'
+          editingBike
+            ? "Update your bike details"
+            : "Add a new bike to track expenses"
         }
       >
-        <Input
-          label="Bike Name *"
-          placeholder="e.g., My Royal Enfield"
-          value={formData.name}
-          onChangeText={(text) => setFormData({ ...formData, name: text })}
-        />
-
         <Picker
           label="Brand *"
           placeholder="Select brand"
@@ -291,7 +300,7 @@ export const BikesScreen = () => {
 
         <Picker
           label="Model *"
-          placeholder={formData.brand ? 'Select model' : 'Select brand first'}
+          placeholder={formData.brand ? "Select model" : "Select brand first"}
           value={formData.model}
           options={availableModels.map((model) => ({
             label: model,
@@ -301,19 +310,33 @@ export const BikesScreen = () => {
         />
 
         <Input
-          label="Registration Number *"
+          label="Registration Number (Optional)"
           placeholder="e.g., DL-01-AB-1234"
           value={formData.registration}
-          onChangeText={(text) => setFormData({ ...formData, registration: text })}
+          onChangeText={(text) =>
+            setFormData({ ...formData, registration: text })
+          }
           autoCapitalize="characters"
         />
 
         <Button
-          title={editingBike ? 'Update Bike' : 'Add Bike'}
+          title={editingBike ? "Update Bike" : "Add Bike"}
           onPress={handleSubmit}
           style={{ marginTop: 8 }}
         />
       </ModalDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        visible={deleteDialogVisible}
+        title="Delete Bike"
+        message="Are you sure you want to delete this bike? All associated expenses will also be deleted."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </SafeAreaView>
   );
 };

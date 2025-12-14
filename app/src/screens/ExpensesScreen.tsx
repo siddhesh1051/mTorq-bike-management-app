@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   TouchableOpacity,
   TextInput,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Filter, Edit, Trash2 } from 'lucide-react-native';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Search, Filter, Edit, Trash2 } from "lucide-react-native";
 import {
   Card,
   CardContent,
@@ -18,28 +17,33 @@ import {
   Input,
   Picker,
   ModalDialog,
-} from '../components';
-import { Expense, Bike, ExpenseCreate } from '../types';
-import apiService from '../services/api';
-import { format } from 'date-fns';
+  ConfirmDialog,
+} from "../components";
+import { Expense, Bike, ExpenseCreate } from "../types";
+import apiService from "../services/api";
+import { format } from "date-fns";
+import { useToast } from "../context/ToastContext";
 
 export const ExpensesScreen = () => {
+  const { showSuccess, showError } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [bikes, setBikes] = useState<Bike[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [filterBike, setFilterBike] = useState('all');
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [filterBike, setFilterBike] = useState("all");
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [formData, setFormData] = useState<ExpenseCreate>({
-    bike_id: '',
-    type: '',
+    bike_id: "",
+    type: "",
     amount: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split("T")[0],
     odometer: undefined,
-    notes: '',
+    notes: "",
   });
 
   useEffect(() => {
@@ -54,9 +58,13 @@ export const ExpensesScreen = () => {
       ]);
       setExpenses(expensesData);
       setBikes(bikesData);
-    } catch (error) {
-      console.error('Failed to load expenses:', error);
-      Alert.alert('Error', 'Failed to load expenses');
+    } catch (error: any) {
+      console.error("Failed to load expenses:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to load expenses";
+      showError("Load Failed", errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -76,7 +84,7 @@ export const ExpensesScreen = () => {
       amount: expense.amount,
       date: expense.date,
       odometer: expense.odometer,
-      notes: expense.notes || '',
+      notes: expense.notes || "",
     });
     setEditModalVisible(true);
   };
@@ -86,41 +94,55 @@ export const ExpensesScreen = () => {
 
     try {
       await apiService.updateExpense(editingExpense.id, formData);
-      Alert.alert('Success', 'Expense updated successfully!');
+      showSuccess("Expense Updated", "Expense updated successfully!");
       setEditModalVisible(false);
       setEditingExpense(null);
       fetchData();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update expense');
+    } catch (error: any) {
+      console.error("Error updating expense:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to update expense";
+      showError("Update Failed", errorMessage);
     }
   };
 
   const handleDelete = (expense: Expense) => {
-    Alert.alert(
-      'Delete Expense',
-      'Are you sure you want to delete this expense?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiService.deleteExpense(expense.id);
-              Alert.alert('Success', 'Expense deleted successfully!');
-              fetchData();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete expense');
-            }
-          },
-        },
-      ]
-    );
+    setExpenseToDelete(expense);
+    setDeleteDialogVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!expenseToDelete) return;
+
+    try {
+      await apiService.deleteExpense(expenseToDelete.id);
+      showSuccess("Expense Deleted", "Expense deleted successfully!");
+      fetchData();
+    } catch (error: any) {
+      console.error("Error deleting expense:", error);
+      const errorMessage =
+        typeof error.response?.data?.detail === "string"
+          ? error.response.data.detail
+          : error.message || "Failed to delete expense";
+      showError("Delete Failed", errorMessage);
+    } finally {
+      setDeleteDialogVisible(false);
+      setExpenseToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogVisible(false);
+    setExpenseToDelete(null);
   };
 
   const getBikeName = (bikeId: string) => {
     const bike = bikes.find((b) => b.id === bikeId);
-    return bike ? `${bike.name} (${bike.registration})` : 'Unknown Bike';
+    if (!bike) return "Unknown Bike";
+    const bikeName = `${bike.brand || ""} ${bike.model}`.trim();
+    return bike.registration ? `${bikeName} (${bike.registration})` : bikeName;
   };
 
   const filteredExpenses = expenses.filter((expense) => {
@@ -128,16 +150,18 @@ export const ExpensesScreen = () => {
       ? expense.notes?.toLowerCase().includes(search.toLowerCase()) ||
         expense.type.toLowerCase().includes(search.toLowerCase())
       : true;
-    const matchesType = filterType !== 'all' ? expense.type === filterType : true;
-    const matchesBike = filterBike !== 'all' ? expense.bike_id === filterBike : true;
+    const matchesType =
+      filterType !== "all" ? expense.type === filterType : true;
+    const matchesBike =
+      filterBike !== "all" ? expense.bike_id === filterBike : true;
     return matchesSearch && matchesType && matchesBike;
   });
 
   const typeColors: Record<string, string> = {
-    Fuel: '#60a5fa',
-    Service: '#f87171',
-    Insurance: '#4ade80',
-    Other: '#fbbf24',
+    Fuel: "#60a5fa",
+    Service: "#f87171",
+    Insurance: "#4ade80",
+    Other: "#fbbf24",
   };
 
   if (loading) {
@@ -155,13 +179,20 @@ export const ExpensesScreen = () => {
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1">
         {/* Header */}
-        <View className="px-4 py-3 border-b border-white/10">
+        <View className="px-5 py-4 border-b border-white/10">
           <Text className="text-white text-3xl font-bold">Expenses</Text>
-          <Text className="text-zinc-400 mt-1">View and manage all expenses</Text>
+          <Text className="text-zinc-400 mt-1">
+            View and manage all expenses
+          </Text>
         </View>
 
         <ScrollView
           className="flex-1"
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 80,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -171,7 +202,7 @@ export const ExpensesScreen = () => {
           }
         >
           {/* Filters */}
-          <View className="p-4">
+          <View>
             <Card style={{ marginBottom: 16 }}>
               <CardContent>
                 {/* Search */}
@@ -194,11 +225,11 @@ export const ExpensesScreen = () => {
                   placeholder="All Types"
                   value={filterType}
                   options={[
-                    { label: 'All Types', value: 'all' },
-                    { label: 'Fuel', value: 'Fuel' },
-                    { label: 'Service', value: 'Service' },
-                    { label: 'Insurance', value: 'Insurance' },
-                    { label: 'Other', value: 'Other' },
+                    { label: "All Types", value: "all" },
+                    { label: "Fuel", value: "Fuel" },
+                    { label: "Service", value: "Service" },
+                    { label: "Insurance", value: "Insurance" },
+                    { label: "Other", value: "Other" },
                   ]}
                   onValueChange={setFilterType}
                 />
@@ -209,9 +240,9 @@ export const ExpensesScreen = () => {
                   placeholder="All Bikes"
                   value={filterBike}
                   options={[
-                    { label: 'All Bikes', value: 'all' },
+                    { label: "All Bikes", value: "all" },
                     ...bikes.map((bike) => ({
-                      label: bike.name,
+                      label: `${bike.brand || ""} ${bike.model}`.trim(),
                       value: bike.id,
                     })),
                   ]}
@@ -226,8 +257,8 @@ export const ExpensesScreen = () => {
                 <CardContent>
                   <Text className="text-zinc-500 text-center py-8">
                     {expenses.length === 0
-                      ? 'No expenses recorded yet. Add your first expense!'
-                      : 'No expenses match your filters.'}
+                      ? "No expenses recorded yet. Add your first expense!"
+                      : "No expenses match your filters."}
                   </Text>
                 </CardContent>
               </Card>
@@ -240,7 +271,9 @@ export const ExpensesScreen = () => {
                         <View className="flex-row items-center mb-2">
                           <View
                             className="px-3 py-1 rounded-full mr-2"
-                            style={{ backgroundColor: `${typeColors[expense.type]}20` }}
+                            style={{
+                              backgroundColor: `${typeColors[expense.type]}20`,
+                            }}
                           >
                             <Text
                               className="text-xs font-medium"
@@ -254,10 +287,10 @@ export const ExpensesScreen = () => {
                           {getBikeName(expense.bike_id)}
                         </Text>
                         <Text className="text-primary text-2xl font-bold font-mono mb-1">
-                          ₹{expense.amount.toLocaleString('en-IN')}
+                          ₹{expense.amount.toLocaleString("en-IN")}
                         </Text>
                         <Text className="text-zinc-500 text-sm font-mono">
-                          {format(new Date(expense.date), 'dd MMM yyyy')}
+                          {format(new Date(expense.date), "dd MMM yyyy")}
                         </Text>
                         {expense.odometer && (
                           <Text className="text-zinc-500 text-sm font-mono">
@@ -307,20 +340,22 @@ export const ExpensesScreen = () => {
           label="Bike *"
           value={formData.bike_id}
           options={bikes.map((bike) => ({
-            label: `${bike.name} - ${bike.registration}`,
+            label: bike.model,
             value: bike.id,
           }))}
-          onValueChange={(value) => setFormData({ ...formData, bike_id: value })}
+          onValueChange={(value) =>
+            setFormData({ ...formData, bike_id: value })
+          }
         />
 
         <Picker
           label="Type *"
           value={formData.type}
           options={[
-            { label: 'Fuel', value: 'Fuel' },
-            { label: 'Service', value: 'Service' },
-            { label: 'Insurance', value: 'Insurance' },
-            { label: 'Other', value: 'Other' },
+            { label: "Fuel", value: "Fuel" },
+            { label: "Service", value: "Service" },
+            { label: "Insurance", value: "Insurance" },
+            { label: "Other", value: "Other" },
           ]}
           onValueChange={(value) => setFormData({ ...formData, type: value })}
         />
@@ -345,9 +380,12 @@ export const ExpensesScreen = () => {
         <Input
           label="Odometer (km)"
           placeholder="Enter odometer reading"
-          value={formData.odometer?.toString() || ''}
+          value={formData.odometer?.toString() || ""}
           onChangeText={(text) =>
-            setFormData({ ...formData, odometer: text ? parseInt(text) : undefined })
+            setFormData({
+              ...formData,
+              odometer: text ? parseInt(text) : undefined,
+            })
           }
           keyboardType="numeric"
         />
@@ -359,11 +397,27 @@ export const ExpensesScreen = () => {
           onChangeText={(text) => setFormData({ ...formData, notes: text })}
           multiline
           numberOfLines={3}
-          style={{ height: 80, textAlignVertical: 'top' }}
+          style={{ height: 80, textAlignVertical: "top" }}
         />
 
-        <Button title="Update Expense" onPress={handleUpdate} style={{ marginTop: 8 }} />
+        <Button
+          title="Update Expense"
+          onPress={handleUpdate}
+          style={{ marginTop: 8 }}
+        />
       </ModalDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        visible={deleteDialogVisible}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </SafeAreaView>
   );
 };

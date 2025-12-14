@@ -1,13 +1,13 @@
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Plus, List, Bike, Settings } from 'lucide-react-native';
+import React from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Home, List, Bike, Settings, BarChart3 } from "lucide-react-native";
 import {
   DashboardScreen,
-  AddExpenseScreen,
   ExpensesScreen,
   BikesScreen,
   SettingsScreen,
-} from '../screens';
+  AnalyticsScreen,
+} from "../screens";
 
 const Tab = createBottomTabNavigator();
 
@@ -17,18 +17,18 @@ export const MainNavigator = () => {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: 'rgba(9, 9, 11, 0.95)',
-          borderTopColor: 'rgba(255, 255, 255, 0.1)',
+          backgroundColor: "rgba(9, 9, 11, 0.95)",
+          borderTopColor: "rgba(255, 255, 255, 0.1)",
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
+          height: 84,
+          paddingBottom: 24,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: '#ccfbf1',
-        tabBarInactiveTintColor: '#71717a',
+        tabBarActiveTintColor: "#ccfbf1",
+        tabBarInactiveTintColor: "#71717a",
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
+          fontWeight: "500",
         },
       }}
     >
@@ -40,10 +40,12 @@ export const MainNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Add"
-        component={AddExpenseScreen}
+        name="Analytics"
+        component={AnalyticsScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Plus color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <BarChart3 color={color} size={size} />
+          ),
         }}
       />
       <Tab.Screen
@@ -64,7 +66,9 @@ export const MainNavigator = () => {
         name="Settings"
         component={SettingsScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Settings color={color} size={size} />
+          ),
         }}
       />
     </Tab.Navigator>

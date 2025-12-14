@@ -123,7 +123,9 @@ const Expenses = () => {
 
   const getBikeName = (bikeId) => {
     const bike = bikes.find((b) => b.id === bikeId);
-    return bike ? `${bike.name} (${bike.registration})` : "Unknown Bike";
+    if (!bike) return "Unknown Bike";
+    const bikeName = `${bike.brand || ""} ${bike.model}`.trim();
+    return bike.registration ? `${bikeName} (${bike.registration})` : bikeName;
   };
 
   // Filter expenses
@@ -132,8 +134,10 @@ const Expenses = () => {
       ? expense.notes?.toLowerCase().includes(search.toLowerCase()) ||
         expense.type.toLowerCase().includes(search.toLowerCase())
       : true;
-    const matchesType = filterType !== "all" ? expense.type === filterType : true;
-    const matchesBike = filterBike !== "all" ? expense.bike_id === filterBike : true;
+    const matchesType =
+      filterType !== "all" ? expense.type === filterType : true;
+    const matchesBike =
+      filterBike !== "all" ? expense.bike_id === filterBike : true;
     return matchesSearch && matchesType && matchesBike;
   });
 
@@ -177,15 +181,43 @@ const Expenses = () => {
                 Type
               </Label>
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger data-testid="filter-type-select" className="h-10 bg-zinc-900/50 border-white/10 text-white">
+                <SelectTrigger
+                  data-testid="filter-type-select"
+                  className="h-10 bg-zinc-900/50 border-white/10 text-white"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-900 border-white/10">
-                  <SelectItem value="all" className="text-white hover:bg-zinc-800">All Types</SelectItem>
-                  <SelectItem value="Fuel" className="text-white hover:bg-zinc-800">Fuel</SelectItem>
-                  <SelectItem value="Service" className="text-white hover:bg-zinc-800">Service</SelectItem>
-                  <SelectItem value="Insurance" className="text-white hover:bg-zinc-800">Insurance</SelectItem>
-                  <SelectItem value="Other" className="text-white hover:bg-zinc-800">Other</SelectItem>
+                  <SelectItem
+                    value="all"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    All Types
+                  </SelectItem>
+                  <SelectItem
+                    value="Fuel"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    Fuel
+                  </SelectItem>
+                  <SelectItem
+                    value="Service"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    Service
+                  </SelectItem>
+                  <SelectItem
+                    value="Insurance"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    Insurance
+                  </SelectItem>
+                  <SelectItem
+                    value="Other"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    Other
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -196,14 +228,26 @@ const Expenses = () => {
                 Bike
               </Label>
               <Select value={filterBike} onValueChange={setFilterBike}>
-                <SelectTrigger data-testid="filter-bike-select" className="h-10 bg-zinc-900/50 border-white/10 text-white">
+                <SelectTrigger
+                  data-testid="filter-bike-select"
+                  className="h-10 bg-zinc-900/50 border-white/10 text-white"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-900 border-white/10">
-                  <SelectItem value="all" className="text-white hover:bg-zinc-800">All Bikes</SelectItem>
+                  <SelectItem
+                    value="all"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    All Bikes
+                  </SelectItem>
                   {bikes.map((bike) => (
-                    <SelectItem key={bike.id} value={bike.id} className="text-white hover:bg-zinc-800">
-                      {bike.name}
+                    <SelectItem
+                      key={bike.id}
+                      value={bike.id}
+                      className="text-white hover:bg-zinc-800"
+                    >
+                      {bike.brand || ""} {bike.model}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -215,7 +259,9 @@ const Expenses = () => {
 
       {/* Expenses List */}
       {loading ? (
-        <div className="text-center text-zinc-400 py-12">Loading expenses...</div>
+        <div className="text-center text-zinc-400 py-12">
+          Loading expenses...
+        </div>
       ) : filteredExpenses.length === 0 ? (
         <Card className="glass border-white/10">
           <CardContent className="py-12">
@@ -250,10 +296,10 @@ const Expenses = () => {
                     </div>
                     <div className="flex items-center gap-4 flex-wrap">
                       <div className="font-mono font-bold text-2xl text-[#ccfbf1]">
-                        ₹{expense.amount.toLocaleString('en-IN')}
+                        ₹{expense.amount.toLocaleString("en-IN")}
                       </div>
                       <div className="text-sm text-zinc-500 font-mono">
-                        {format(new Date(expense.date), 'dd MMM yyyy')}
+                        {format(new Date(expense.date), "dd MMM yyyy")}
                       </div>
                       {expense.odometer && (
                         <div className="text-sm text-zinc-500 font-mono">
@@ -262,7 +308,9 @@ const Expenses = () => {
                       )}
                     </div>
                     {expense.notes && (
-                      <div className="text-sm text-zinc-400">{expense.notes}</div>
+                      <div className="text-sm text-zinc-400">
+                        {expense.notes}
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -317,8 +365,12 @@ const Expenses = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-900 border-white/10">
                   {bikes.map((bike) => (
-                    <SelectItem key={bike.id} value={bike.id} className="text-white hover:bg-zinc-800">
-                      {bike.name} - {bike.registration}
+                    <SelectItem
+                      key={bike.id}
+                      value={bike.id}
+                      className="text-white hover:bg-zinc-800"
+                    >
+                      {bike.model}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -337,10 +389,30 @@ const Expenses = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-900 border-white/10">
-                  <SelectItem value="Fuel" className="text-white hover:bg-zinc-800">Fuel</SelectItem>
-                  <SelectItem value="Service" className="text-white hover:bg-zinc-800">Service</SelectItem>
-                  <SelectItem value="Insurance" className="text-white hover:bg-zinc-800">Insurance</SelectItem>
-                  <SelectItem value="Other" className="text-white hover:bg-zinc-800">Other</SelectItem>
+                  <SelectItem
+                    value="Fuel"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    Fuel
+                  </SelectItem>
+                  <SelectItem
+                    value="Service"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    Service
+                  </SelectItem>
+                  <SelectItem
+                    value="Insurance"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    Insurance
+                  </SelectItem>
+                  <SelectItem
+                    value="Other"
+                    className="text-white hover:bg-zinc-800"
+                  >
+                    Other
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

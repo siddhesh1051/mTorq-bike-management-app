@@ -27,7 +27,7 @@ const AddExpense = () => {
     bike_id: "",
     type: "",
     amount: "",
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split("T")[0],
     odometer: "",
     notes: "",
   });
@@ -50,7 +50,7 @@ const AddExpense = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.bike_id || !formData.type || !formData.amount) {
       toast.error("Please fill in all required fields");
       return;
@@ -72,9 +72,7 @@ const AddExpense = () => {
       toast.success("Expense added successfully!");
       navigate("/");
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail || "Failed to add expense"
-      );
+      toast.error(error.response?.data?.detail || "Failed to add expense");
     } finally {
       setLoading(false);
     }
@@ -108,13 +106,20 @@ const AddExpense = () => {
                     setFormData({ ...formData, bike_id: value })
                   }
                 >
-                  <SelectTrigger data-testid="expense-bike-select" className="h-12 bg-zinc-900/50 border-white/10 text-white">
+                  <SelectTrigger
+                    data-testid="expense-bike-select"
+                    className="h-12 bg-zinc-900/50 border-white/10 text-white"
+                  >
                     <SelectValue placeholder="Select a bike" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-white/10 z-[100]">
                     {bikes.map((bike) => (
-                      <SelectItem key={bike.id} value={bike.id} className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer">
-                        {bike.name} - {bike.registration}
+                      <SelectItem
+                        key={bike.id}
+                        value={bike.id}
+                        className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer"
+                      >
+                        {bike.model}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -130,14 +135,37 @@ const AddExpense = () => {
                     setFormData({ ...formData, type: value })
                   }
                 >
-                  <SelectTrigger data-testid="expense-type-select" className="h-12 bg-zinc-900/50 border-white/10 text-white">
+                  <SelectTrigger
+                    data-testid="expense-type-select"
+                    className="h-12 bg-zinc-900/50 border-white/10 text-white"
+                  >
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-white/10 z-[100]">
-                    <SelectItem value="Fuel" className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer">Fuel</SelectItem>
-                    <SelectItem value="Service" className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer">Service</SelectItem>
-                    <SelectItem value="Insurance" className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer">Insurance</SelectItem>
-                    <SelectItem value="Other" className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer">Other</SelectItem>
+                    <SelectItem
+                      value="Fuel"
+                      className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer"
+                    >
+                      Fuel
+                    </SelectItem>
+                    <SelectItem
+                      value="Service"
+                      className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer"
+                    >
+                      Service
+                    </SelectItem>
+                    <SelectItem
+                      value="Insurance"
+                      className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer"
+                    >
+                      Insurance
+                    </SelectItem>
+                    <SelectItem
+                      value="Other"
+                      className="text-white focus:bg-zinc-800 focus:text-white cursor-pointer"
+                    >
+                      Other
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
