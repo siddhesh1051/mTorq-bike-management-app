@@ -1,0 +1,369 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Search, Filter, Edit, Trash2 } from 'lucide-react-native';
+import {
+  Card,
+  CardContent,
+  Button,
+  Input,
+  Picker,
+  ModalDialog,
+} from '../components';
+import { Expense, Bike, ExpenseCreate } from '../types';
+import apiService from '../services/api';
+import { format } from 'date-fns';
+
+export const ExpensesScreen = () => {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [bikes, setBikes] = useState<Bike[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [filterBike, setFilterBike] = useState('all');
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [formData, setFormData] = useState<ExpenseCreate>({
+    bike_id: '',
+    type: '',
+    amount: 0,
+    date: new Date().toISOString().split('T')[0],
+    odometer: undefined,
+    notes: '',
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [expensesData, bikesData] = await Promise.all([
+        apiService.getExpenses(),
+        apiService.getBikes(),
+      ]);
+      setExpenses(expensesData);
+      setBikes(bikesData);
+    } catch (error) {
+      console.error('Failed to load expenses:', error);
+      Alert.alert('Error', 'Failed to load expenses');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  const handleEdit = (expense: Expense) => {
+    setEditingExpense(expense);
+    setFormData({
+      bike_id: expense.bike_id,
+      type: expense.type,
+      amount: expense.amount,
+      date: expense.date,
+      odometer: expense.odometer,
+      notes: expense.notes || '',
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingExpense) return;
+
+    try {
+      await apiService.updateExpense(editingExpense.id, formData);
+      Alert.alert('Success', 'Expense updated successfully!');
+      setEditModalVisible(false);
+      setEditingExpense(null);
+      fetchData();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update expense');
+    }
+  };
+
+  const handleDelete = (expense: Expense) => {
+    Alert.alert(
+      'Delete Expense',
+      'Are you sure you want to delete this expense?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiService.deleteExpense(expense.id);
+              Alert.alert('Success', 'Expense deleted successfully!');
+              fetchData();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete expense');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const getBikeName = (bikeId: string) => {
+    const bike = bikes.find((b) => b.id === bikeId);
+    return bike ? `${bike.name} (${bike.registration})` : 'Unknown Bike';
+  };
+
+  const filteredExpenses = expenses.filter((expense) => {
+    const matchesSearch = search
+      ? expense.notes?.toLowerCase().includes(search.toLowerCase()) ||
+        expense.type.toLowerCase().includes(search.toLowerCase())
+      : true;
+    const matchesType = filterType !== 'all' ? expense.type === filterType : true;
+    const matchesBike = filterBike !== 'all' ? expense.bike_id === filterBike : true;
+    return matchesSearch && matchesType && matchesBike;
+  });
+
+  const typeColors: Record<string, string> = {
+    Fuel: '#60a5fa',
+    Service: '#f87171',
+    Insurance: '#4ade80',
+    Other: '#fbbf24',
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#ccfbf1" />
+          <Text className="text-zinc-400 mt-4">Loading expenses...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-background">
+      <View className="flex-1">
+        {/* Header */}
+        <View className="px-4 py-3 border-b border-white/10">
+          <Text className="text-white text-3xl font-bold">Expenses</Text>
+          <Text className="text-zinc-400 mt-1">View and manage all expenses</Text>
+        </View>
+
+        <ScrollView
+          className="flex-1"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#ccfbf1"
+            />
+          }
+        >
+          {/* Filters */}
+          <View className="p-4">
+            <Card style={{ marginBottom: 16 }}>
+              <CardContent>
+                {/* Search */}
+                <View className="mb-4">
+                  <View className="flex-row items-center h-12 bg-zinc-900/50 border border-white/10 rounded-lg px-4">
+                    <Search color="#71717a" size={20} />
+                    <TextInput
+                      placeholder="Search by notes or type..."
+                      placeholderTextColor="#71717a"
+                      value={search}
+                      onChangeText={setSearch}
+                      className="flex-1 ml-2 text-white"
+                    />
+                  </View>
+                </View>
+
+                {/* Type Filter */}
+                <Picker
+                  label="Type"
+                  placeholder="All Types"
+                  value={filterType}
+                  options={[
+                    { label: 'All Types', value: 'all' },
+                    { label: 'Fuel', value: 'Fuel' },
+                    { label: 'Service', value: 'Service' },
+                    { label: 'Insurance', value: 'Insurance' },
+                    { label: 'Other', value: 'Other' },
+                  ]}
+                  onValueChange={setFilterType}
+                />
+
+                {/* Bike Filter */}
+                <Picker
+                  label="Bike"
+                  placeholder="All Bikes"
+                  value={filterBike}
+                  options={[
+                    { label: 'All Bikes', value: 'all' },
+                    ...bikes.map((bike) => ({
+                      label: bike.name,
+                      value: bike.id,
+                    })),
+                  ]}
+                  onValueChange={setFilterBike}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Expenses List */}
+            {filteredExpenses.length === 0 ? (
+              <Card>
+                <CardContent>
+                  <Text className="text-zinc-500 text-center py-8">
+                    {expenses.length === 0
+                      ? 'No expenses recorded yet. Add your first expense!'
+                      : 'No expenses match your filters.'}
+                  </Text>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredExpenses.map((expense) => (
+                <Card key={expense.id} style={{ marginBottom: 12 }}>
+                  <CardContent>
+                    <View className="flex-row justify-between">
+                      <View className="flex-1 mr-4">
+                        <View className="flex-row items-center mb-2">
+                          <View
+                            className="px-3 py-1 rounded-full mr-2"
+                            style={{ backgroundColor: `${typeColors[expense.type]}20` }}
+                          >
+                            <Text
+                              className="text-xs font-medium"
+                              style={{ color: typeColors[expense.type] }}
+                            >
+                              {expense.type}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text className="text-zinc-500 text-sm mb-2">
+                          {getBikeName(expense.bike_id)}
+                        </Text>
+                        <Text className="text-primary text-2xl font-bold font-mono mb-1">
+                          ₹{expense.amount.toLocaleString('en-IN')}
+                        </Text>
+                        <Text className="text-zinc-500 text-sm font-mono">
+                          {format(new Date(expense.date), 'dd MMM yyyy')}
+                        </Text>
+                        {expense.odometer && (
+                          <Text className="text-zinc-500 text-sm font-mono">
+                            {expense.odometer.toLocaleString()} km
+                          </Text>
+                        )}
+                        {expense.notes && (
+                          <Text className="text-zinc-400 text-sm mt-2">
+                            {expense.notes}
+                          </Text>
+                        )}
+                      </View>
+                      <View className="gap-2">
+                        <TouchableOpacity
+                          className="border border-white/10 rounded-full w-10 h-10 items-center justify-center"
+                          onPress={() => handleEdit(expense)}
+                        >
+                          <Edit color="#d4d4d8" size={16} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          className="border border-red-500/20 rounded-full w-10 h-10 items-center justify-center"
+                          onPress={() => handleDelete(expense)}
+                        >
+                          <Trash2 color="#f87171" size={16} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* Edit Modal */}
+      <ModalDialog
+        visible={editModalVisible}
+        onClose={() => {
+          setEditModalVisible(false);
+          setEditingExpense(null);
+        }}
+        title="Edit Expense"
+        description="Update expense details"
+      >
+        <Picker
+          label="Bike *"
+          value={formData.bike_id}
+          options={bikes.map((bike) => ({
+            label: `${bike.name} - ${bike.registration}`,
+            value: bike.id,
+          }))}
+          onValueChange={(value) => setFormData({ ...formData, bike_id: value })}
+        />
+
+        <Picker
+          label="Type *"
+          value={formData.type}
+          options={[
+            { label: 'Fuel', value: 'Fuel' },
+            { label: 'Service', value: 'Service' },
+            { label: 'Insurance', value: 'Insurance' },
+            { label: 'Other', value: 'Other' },
+          ]}
+          onValueChange={(value) => setFormData({ ...formData, type: value })}
+        />
+
+        <Input
+          label="Amount (₹) *"
+          placeholder="Enter amount"
+          value={formData.amount.toString()}
+          onChangeText={(text) =>
+            setFormData({ ...formData, amount: parseFloat(text) || 0 })
+          }
+          keyboardType="numeric"
+        />
+
+        <Input
+          label="Date *"
+          placeholder="YYYY-MM-DD"
+          value={formData.date}
+          onChangeText={(text) => setFormData({ ...formData, date: text })}
+        />
+
+        <Input
+          label="Odometer (km)"
+          placeholder="Enter odometer reading"
+          value={formData.odometer?.toString() || ''}
+          onChangeText={(text) =>
+            setFormData({ ...formData, odometer: text ? parseInt(text) : undefined })
+          }
+          keyboardType="numeric"
+        />
+
+        <Input
+          label="Notes"
+          placeholder="Add any notes..."
+          value={formData.notes}
+          onChangeText={(text) => setFormData({ ...formData, notes: text })}
+          multiline
+          numberOfLines={3}
+          style={{ height: 80, textAlignVertical: 'top' }}
+        />
+
+        <Button title="Update Expense" onPress={handleUpdate} style={{ marginTop: 8 }} />
+      </ModalDialog>
+    </SafeAreaView>
+  );
+};
