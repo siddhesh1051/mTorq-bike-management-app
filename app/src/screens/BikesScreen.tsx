@@ -7,9 +7,20 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
+  StyleSheet,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Bike as BikeIcon, Plus, Edit, Trash2 } from "lucide-react-native";
+import {
+  Bike as BikeIcon,
+  Plus,
+  Edit,
+  Trash2,
+  Gauge,
+  Flame,
+  Fuel,
+  ChevronDown,
+} from "lucide-react-native";
 import {
   Card,
   CardHeader,
@@ -23,8 +34,97 @@ import {
 import { Bike, BikeCreate, BrandModelsMap } from "../types";
 import apiService from "../services/api";
 import { useToast } from "../context/ToastContext";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+
+const { width } = Dimensions.get("window");
+
+// Hardcoded bike specs for the modern card design
+const bikeSpecs: Record<
+  string,
+  { power: string; mileage: string; cc: string }
+> = {
+  default: { power: "45 bhp", mileage: "40 kmpl", cc: "400cc" },
+};
+
+const BikeImage = require("../../assets/bike.png");
+
+interface BikeCardProps {
+  bike: Bike;
+  onEdit: (bike: Bike) => void;
+  onDelete: (bike: Bike) => void;
+  onPress: (bike: Bike) => void;
+  index: number;
+}
+
+const BikeCard: React.FC<BikeCardProps> = ({
+  bike,
+  onEdit,
+  onDelete,
+  onPress,
+  index,
+}) => {
+  const specs = bikeSpecs[bike.model] || bikeSpecs.default;
+
+  return (
+    <TouchableOpacity
+      style={styles.cardContainer}
+      onPress={() => onPress(bike)}
+      activeOpacity={0.8}
+    >
+      {/* Main content area with bike image on top */}
+      <View style={styles.cardContent}>
+        {/* Text info - positioned below the image */}
+        <View style={styles.textSection}>
+          {bike.registration && (
+            <View style={styles.registrationBadge}>
+              <Text style={styles.registrationText}>
+                {bike.registration.length > 13
+                  ? bike.registration.slice(0, 13) + "..."
+                  : bike.registration}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.bikeBrand}>{bike.brand}</Text>
+          <Text style={styles.bikeModel}>{bike.model}</Text>
+        </View>
+
+        {/* Bike image - floating on top right */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={BikeImage}
+            style={styles.bikeImage}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
+
+      {/* Specs Row */}
+      <LinearGradient
+        colors={["rgba(130, 130, 130, 0.5)", "rgba(9, 9, 11, 0)"]}
+        start={{ x: 0.5, y: 1 }}
+        end={{ x: 0.5, y: 0 }}
+        style={styles.specsRow}
+      >
+        <View style={styles.specItem}>
+          <Flame color="#ffffff80" size={20} strokeWidth={1.5} />
+          <Text style={styles.specText}>{specs.power}</Text>
+        </View>
+        <View style={styles.specItem}>
+          <Gauge color="#ffffff80" size={20} strokeWidth={1.5} />
+          <Text style={styles.specText}>{specs.cc}</Text>
+        </View>
+        <View style={styles.specItem}>
+          <Fuel color="#ffffff80" size={20} strokeWidth={1.5} />
+          <Text style={styles.specText}>{specs.mileage}</Text>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+};
 
 export const BikesScreen = () => {
+  const navigation = useNavigation<any>();
   const { showSuccess, showError } = useToast();
   const [bikes, setBikes] = useState<Bike[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,112 +265,80 @@ export const BikesScreen = () => {
     resetForm();
   };
 
+  const handleCardPress = (bike: Bike) => {
+    navigation.navigate("BikeDetail", { bike });
+  };
+
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#ccfbf1" />
-          <Text className="text-zinc-400 mt-4">Loading bikes...</Text>
+      <SafeAreaView style={styles.loadingContainer}>
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#5eead4" />
+          <Text style={styles.loadingText}>Loading bikes...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <View className="flex-1">
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
         {/* Header */}
-        <View className="flex-row justify-between items-center px-5 py-4 border-b border-white/10">
-          <View>
-            <Text className="text-white text-3xl font-bold">My Bikes</Text>
-            <Text className="text-zinc-400 mt-1">Manage your bikes</Text>
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.headerTitle}>My Bikes</Text>
+              <Text style={styles.headerSubtitle}>Manage your bikes</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <Plus color="#115e59" size={24} strokeWidth={2.5} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            className="bg-primary rounded-full w-12 h-12 items-center justify-center"
-            onPress={() => setModalVisible(true)}
-          >
-            <Plus color="#115e59" size={24} strokeWidth={2.5} />
-          </TouchableOpacity>
         </View>
 
         {/* Bikes List */}
         <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingTop: 20,
-            paddingBottom: 80,
-          }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#ccfbf1"
+              tintColor="#5eead4"
             />
           }
         >
           {bikes.length === 0 ? (
-            <Card>
-              <CardContent>
-                <View className="py-12 items-center">
-                  <View className="w-20 h-20 rounded-full bg-zinc-800 items-center justify-center mb-4">
-                    <BikeIcon color="#52525b" size={40} />
-                  </View>
-                  <Text className="text-white text-xl font-semibold mb-2">
-                    No bikes yet
-                  </Text>
-                  <Text className="text-zinc-400">
-                    Add your first bike to start tracking expenses
-                  </Text>
-                </View>
-              </CardContent>
-            </Card>
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconContainer}>
+                <BikeIcon color="#52525b" size={48} />
+              </View>
+              <Text style={styles.emptyTitle}>No bikes yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Add your first bike to start tracking expenses
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyAddButton}
+                onPress={() => setModalVisible(true)}
+              >
+                <Plus color="#115e59" size={20} />
+                <Text style={styles.emptyAddText}>Add Your First Bike</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
-            bikes.map((bike) => (
-              <Card key={bike.id} style={{ marginBottom: 16 }}>
-                <CardHeader>
-                  <View className="aspect-video rounded bg-zinc-800 mb-4 overflow-hidden items-center justify-center">
-                    <Image
-                      source={{
-                        uri: "https://images.unsplash.com/photo-1589963575227-08d8ea840e85?crop=entropy&cs=srgb&fm=jpg&q=85",
-                      }}
-                      className="w-full h-full"
-                      style={{ opacity: 0.3 }}
-                    />
-                  </View>
-                  <Text className="text-white text-xl font-bold">
-                    {bike.brand} {bike.model}
-                  </Text>
-                </CardHeader>
-                <CardContent>
-                  {bike.registration && (
-                    <View className="mb-4">
-                      <Text className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-                        Registration Number
-                      </Text>
-                      <Text className="text-zinc-300 font-mono text-lg">
-                        {bike.registration}
-                      </Text>
-                    </View>
-                  )}
-                  <View className="flex-row gap-2">
-                    <TouchableOpacity
-                      className="flex-1 flex-row items-center justify-center border border-white/10 rounded-full h-10"
-                      onPress={() => handleEdit(bike)}
-                    >
-                      <Edit color="#d4d4d8" size={16} />
-                      <Text className="text-zinc-300 ml-2">Edit</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="flex-1 flex-row items-center justify-center border border-red-500/20 rounded-full h-10"
-                      onPress={() => handleDelete(bike)}
-                    >
-                      <Trash2 color="#f87171" size={16} />
-                      <Text className="text-red-400 ml-2">Delete</Text>
-                    </TouchableOpacity>
-                  </View>
-                </CardContent>
-              </Card>
+            bikes.map((bike, index) => (
+              <BikeCard
+                key={bike.id}
+                bike={bike}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onPress={handleCardPress}
+                index={index}
+              />
             ))
           )}
         </ScrollView>
@@ -340,3 +408,219 @@ export const BikesScreen = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#09090b",
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#09090b",
+  },
+  loadingContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#71717a",
+    marginTop: 16,
+    fontSize: 16,
+  },
+  content: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#ffffff",
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#71717a",
+    marginTop: 4,
+  },
+  addButton: {
+    backgroundColor: "#5eead4",
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#5eead4",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 100,
+    overflow: "visible",
+  },
+  cardContainer: {
+    // backgroundColor: "#18181b",
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    overflow: "visible",
+    position: "relative",
+  },
+  cardContent: {
+    paddingBottom: 28,
+  },
+  textSection: {
+    paddingLeft: 12,
+    paddingTop: 12,
+    zIndex: 1,
+  },
+  bikeBrand: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#ffffff90",
+    letterSpacing: -1,
+  },
+  bikeModel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#a1a1aa",
+  },
+  registrationBadge: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+  },
+  registrationText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#a1a1aa",
+    letterSpacing: 1.5,
+  },
+  imageContainer: {
+    position: "absolute",
+    top: 0,
+    right: -40,
+    width: width * 0.7,
+    height: 160,
+    zIndex: 10,
+  },
+  bikeImage: {
+    width: "100%",
+    height: "100%",
+  },
+  specsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 16,
+    paddingTop: 32,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    overflow: "hidden",
+  },
+  specItem: {
+    alignItems: "center",
+    gap: 6,
+  },
+  specText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#ffffff90",
+  },
+  actionRow: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    gap: 8,
+  },
+  deleteButton: {
+    borderLeftWidth: 1,
+    borderLeftColor: "rgba(255,255,255,0.08)",
+  },
+  actionText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#a1a1aa",
+  },
+  deleteText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#f87171",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#27272a",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#ffffff",
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 15,
+    color: "#71717a",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  emptyAddButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#5eead4",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 30,
+    gap: 8,
+    shadowColor: "#5eead4",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  emptyAddText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#115e59",
+  },
+});

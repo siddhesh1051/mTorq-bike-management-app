@@ -5,7 +5,7 @@ from enum import Enum
 
 class BikeBrand(str, Enum):
     ROYAL_ENFIELD = "Royal Enfield"
-    HARLEY_DAVIDSON = "Harley-Davidson"
+    HARLEY_DAVIDSON = "Harley Davidson"
     TRIUMPH = "Triumph"
     KTM = "KTM"
     BMW = "BMW"

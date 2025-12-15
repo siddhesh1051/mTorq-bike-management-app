@@ -3,7 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
-import { AuthScreen, AddExpenseScreen } from "../screens";
+import { AuthScreen, AddExpenseScreen, BikeDetailScreen } from "../screens";
 import { MainNavigator } from "./MainNavigator";
 
 const Stack = createNativeStackNavigator();
@@ -25,7 +25,22 @@ export const RootNavigator = () => {
         {user ? (
           <>
             <Stack.Screen name="Main" component={MainNavigator} />
-            <Stack.Screen name="Add" component={AddExpenseScreen} />
+            <Stack.Screen
+              name="Add"
+              component={AddExpenseScreen}
+              options={{
+                presentation: "transparentModal",
+                animation: "fade",
+                contentStyle: { backgroundColor: "transparent" },
+              }}
+            />
+            <Stack.Screen
+              name="BikeDetail"
+              component={BikeDetailScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
           </>
         ) : (
           <Stack.Screen name="Auth" component={AuthScreen} />
