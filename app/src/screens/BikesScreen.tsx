@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
   TouchableOpacity,
   Image,
   StyleSheet,
@@ -27,6 +26,7 @@ import {
   ModalDialog,
   Picker,
   ConfirmDialog,
+  Skeleton,
 } from "../components";
 import { Bike, BikeCreate, BrandModelsMap } from "../types";
 import apiService from "../services/api";
@@ -125,6 +125,83 @@ const formatRegistrationNumber = (text: string): string => {
 };
 
 const BikeImage = require("../../assets/bike.png");
+
+// Skeleton component for bike cards
+const BikeCardSkeleton = () => (
+  <View style={styles.cardContainer}>
+    <View style={styles.skeletonCardContent}>
+      {/* Registration badge skeleton */}
+      <Skeleton
+        width={100}
+        height={28}
+        borderRadius={8}
+        style={{ marginBottom: 12 }}
+      />
+      {/* Brand skeleton */}
+      <Skeleton
+        width={140}
+        height={28}
+        borderRadius={6}
+        style={{ marginBottom: 8 }}
+      />
+      {/* Model skeleton */}
+      <Skeleton width={100} height={20} borderRadius={6} />
+    </View>
+    {/* Specs row skeleton */}
+    <View style={styles.skeletonSpecsRow}>
+      <View style={styles.skeletonSpecItem}>
+        <Skeleton width={24} height={24} borderRadius={12} />
+        <Skeleton
+          width={60}
+          height={16}
+          borderRadius={4}
+          style={{ marginTop: 8 }}
+        />
+      </View>
+      <View style={styles.skeletonSpecItem}>
+        <Skeleton width={24} height={24} borderRadius={12} />
+        <Skeleton
+          width={50}
+          height={16}
+          borderRadius={4}
+          style={{ marginTop: 8 }}
+        />
+      </View>
+    </View>
+  </View>
+);
+
+const BikesScreenSkeleton = () => (
+  <SafeAreaView style={styles.container}>
+    <View style={styles.content}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View>
+            <Skeleton width={120} height={32} borderRadius={8} />
+            <Skeleton
+              width={150}
+              height={16}
+              borderRadius={6}
+              style={{ marginTop: 8 }}
+            />
+          </View>
+          <Skeleton width={48} height={48} borderRadius={16} />
+        </View>
+      </View>
+      {/* Bike cards skeleton */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <BikeCardSkeleton />
+        <BikeCardSkeleton />
+        <BikeCardSkeleton />
+      </ScrollView>
+    </View>
+  </SafeAreaView>
+);
 
 interface BikeCardProps {
   bike: Bike;
@@ -408,14 +485,7 @@ export const BikesScreen = () => {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color="#5eead4" />
-          <Text style={styles.loadingText}>Loading bikes...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <BikesScreenSkeleton />;
   }
 
   return (
@@ -583,20 +653,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#09090b",
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: "#09090b",
-  },
-  loadingContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    color: "#71717a",
-    marginTop: 16,
-    fontSize: 16,
   },
   content: {
     flex: 1,
@@ -850,5 +906,21 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     borderRadius: 12,
     padding: 6,
+  },
+  skeletonCardContent: {
+    padding: 16,
+    paddingBottom: 20,
+  },
+  skeletonSpecsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    backgroundColor: "rgba(39, 39, 42, 0.5)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
+  },
+  skeletonSpecItem: {
+    alignItems: "center",
   },
 });

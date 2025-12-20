@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
   TouchableOpacity,
   TextInput,
   Platform,
@@ -21,11 +20,90 @@ import {
   Picker,
   ModalDialog,
   ConfirmDialog,
+  Skeleton,
 } from "../components";
 import { Expense, Bike, ExpenseCreate } from "../types";
 import apiService from "../services/api";
 import { format } from "date-fns";
 import { useToast } from "../context/ToastContext";
+
+// Expense card skeleton
+const ExpenseCardSkeleton = () => (
+  <Card style={{ marginBottom: 12 }}>
+    <CardContent>
+      <View className="flex-row justify-between">
+        <View className="flex-1 mr-4">
+          <View className="flex-row items-center mb-2">
+            <Skeleton width={70} height={24} borderRadius={12} />
+          </View>
+          <Skeleton width={140} height={14} borderRadius={4} style={{ marginBottom: 8 }} />
+          <Skeleton width={100} height={28} borderRadius={6} style={{ marginBottom: 6 }} />
+          <Skeleton width={90} height={14} borderRadius={4} />
+        </View>
+        <View className="gap-2">
+          <Skeleton width={40} height={40} borderRadius={20} />
+          <Skeleton width={40} height={40} borderRadius={20} />
+        </View>
+      </View>
+    </CardContent>
+  </Card>
+);
+
+// Expenses screen skeleton
+const ExpensesScreenSkeleton = () => (
+  <SafeAreaView className="flex-1 bg-background">
+    <View className="flex-1">
+      {/* Header skeleton */}
+      <View className="px-5 py-4 border-b border-white/10">
+        <Skeleton width={130} height={32} borderRadius={8} />
+        <Skeleton width={200} height={16} borderRadius={6} style={{ marginTop: 8 }} />
+      </View>
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 16,
+          paddingBottom: 80,
+        }}
+      >
+        {/* Filters skeleton */}
+        <Card style={{ marginBottom: 16 }}>
+          <CardContent>
+            {/* Search skeleton */}
+            <View className="mb-4">
+              <Skeleton width="100%" height={48} borderRadius={8} />
+            </View>
+            {/* Type & Bike Filters skeleton */}
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Skeleton width={40} height={14} borderRadius={4} style={{ marginBottom: 8 }} />
+                <Skeleton width="100%" height={48} borderRadius={8} />
+              </View>
+              <View className="flex-1">
+                <Skeleton width={30} height={14} borderRadius={4} style={{ marginBottom: 8 }} />
+                <Skeleton width="100%" height={48} borderRadius={8} />
+              </View>
+            </View>
+            {/* Date range skeleton */}
+            <View className="mt-4">
+              <Skeleton width={80} height={14} borderRadius={4} style={{ marginBottom: 8 }} />
+              <View className="flex-row gap-3">
+                <Skeleton width="48%" height={48} borderRadius={8} />
+                <Skeleton width="48%" height={48} borderRadius={8} />
+              </View>
+            </View>
+          </CardContent>
+        </Card>
+
+        {/* Expense cards skeleton */}
+        <ExpenseCardSkeleton />
+        <ExpenseCardSkeleton />
+        <ExpenseCardSkeleton />
+      </ScrollView>
+    </View>
+  </SafeAreaView>
+);
 
 export const ExpensesScreen = () => {
   const { showSuccess, showError } = useToast();
@@ -236,14 +314,7 @@ export const ExpensesScreen = () => {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#ccfbf1" />
-          <Text className="text-zinc-400 mt-4">Loading expenses...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <ExpensesScreenSkeleton />;
   }
 
   return (

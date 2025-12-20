@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -44,6 +43,7 @@ import {
   ModalDialog,
   Picker,
   ConfirmDialog,
+  Skeleton,
 } from "../components";
 import apiService from "../services/api";
 import { useToast } from "../context/ToastContext";
@@ -175,6 +175,47 @@ interface MonthSectionProps {
   expenses: Expense[];
   isFirst: boolean;
 }
+
+// Timeline skeleton for loading state
+const TimelineSkeleton = () => (
+  <View style={styles.timeline}>
+    {/* Month header skeleton */}
+    <View style={styles.monthHeader}>
+      <View style={styles.monthDotContainer}>
+        <Skeleton width={12} height={12} borderRadius={6} />
+      </View>
+      <Skeleton
+        width={120}
+        height={20}
+        borderRadius={6}
+        style={{ marginLeft: 12 }}
+      />
+    </View>
+    {/* Timeline items skeleton */}
+    {[1, 2, 3].map((i) => (
+      <View key={i} style={styles.timelineItem}>
+        <View style={styles.timelineLineContainer}>
+          <Skeleton width={44} height={44} borderRadius={22} />
+          {i < 3 && <View style={styles.timelineLine} />}
+        </View>
+        <View style={[styles.timelineContent, { marginBottom: 12 }]}>
+          <View style={styles.timelineHeader}>
+            <View style={styles.timelineInfo}>
+              <Skeleton width={80} height={18} borderRadius={6} />
+              <Skeleton
+                width={100}
+                height={14}
+                borderRadius={4}
+                style={{ marginTop: 8 }}
+              />
+            </View>
+            <Skeleton width={70} height={22} borderRadius={6} />
+          </View>
+        </View>
+      </View>
+    ))}
+  </View>
+);
 
 const MonthSection: React.FC<MonthSectionProps> = ({
   month,
@@ -491,10 +532,7 @@ export const BikeDetailScreen = () => {
           <Text style={styles.sectionTitle}>EXPENSE HISTORY</Text>
 
           {loadingExpenses ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#5eead4" />
-              <Text style={styles.loadingText}>Loading expenses...</Text>
-            </View>
+            <TimelineSkeleton />
           ) : expenses.length === 0 ? (
             <View style={styles.emptyContainer}>
               <CircleDollarSign color="#3f3f46" size={48} />
@@ -734,15 +772,6 @@ const styles = StyleSheet.create({
     color: "#71717a",
     letterSpacing: 1.5,
     marginBottom: 20,
-  },
-  loadingContainer: {
-    alignItems: "center",
-    paddingVertical: 40,
-  },
-  loadingText: {
-    color: "#71717a",
-    marginTop: 12,
-    fontSize: 14,
   },
   emptyContainer: {
     alignItems: "center",
