@@ -27,6 +27,7 @@ export interface Bike {
   brand?: string;
   model: string;
   registration?: string;
+  image_url?: string;
   created_at: string;
 }
 
@@ -34,6 +35,7 @@ export interface BikeCreate {
   brand: string;
   model: string;
   registration?: string;
+  image_url?: string;
 }
 
 export type ExpenseType =

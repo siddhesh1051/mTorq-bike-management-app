@@ -9,6 +9,7 @@ import {
   Image,
   StyleSheet,
   Dimensions,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -19,8 +20,11 @@ import {
   Gauge,
   Flame,
   Fuel,
-  ChevronDown,
+  Camera,
+  ImageIcon,
+  X,
 } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
 import {
   Card,
   CardHeader,
@@ -92,9 +96,9 @@ const BikeCard: React.FC<BikeCardProps> = ({
         {/* Bike image - floating on top right */}
         <View style={styles.imageContainer}>
           <Image
-            source={BikeImage}
+            source={bike.image_url ? { uri: bike.image_url } : BikeImage}
             style={styles.bikeImage}
-            resizeMode="contain"
+            resizeMode={bike.image_url ? "cover" : "contain"}
           />
         </View>
       </View>
@@ -139,7 +143,9 @@ export const BikesScreen = () => {
     brand: "",
     model: "",
     registration: "",
+    image_url: "",
   });
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBikes();
@@ -212,7 +218,11 @@ export const BikesScreen = () => {
       brand: brand,
       model: bike.model,
       registration: bike.registration || "",
+      image_url: bike.image_url || "",
     });
+    if (bike.image_url) {
+      setSelectedImage(bike.image_url);
+    }
     if (brand && brandsModels[brand]) {
       setAvailableModels(brandsModels[brand]);
     }
@@ -250,14 +260,71 @@ export const BikesScreen = () => {
   };
 
   const resetForm = () => {
-    setFormData({ brand: "", model: "", registration: "" });
+    setFormData({ brand: "", model: "", registration: "", image_url: "" });
     setAvailableModels([]);
     setEditingBike(null);
+    setSelectedImage(null);
   };
 
   const handleBrandChange = (brand: string) => {
     setFormData({ ...formData, brand, model: "" });
     setAvailableModels(brandsModels[brand] || []);
+  };
+
+  const pickImage = async () => {
+    // Request permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Please grant camera roll permissions to upload images."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setSelectedImage(result.assets[0].uri);
+      setFormData({ ...formData, image_url: base64Image });
+    }
+  };
+
+  const takePhoto = async () => {
+    // Request camera permission
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Please grant camera permissions to take photos."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setSelectedImage(result.assets[0].uri);
+      setFormData({ ...formData, image_url: base64Image });
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setFormData({ ...formData, image_url: "" });
   };
 
   const handleModalClose = () => {
@@ -386,6 +453,43 @@ export const BikesScreen = () => {
           }
           autoCapitalize="characters"
         />
+
+        {/* Image Picker Section */}
+        <View style={styles.imagePickerSection}>
+          <Text style={styles.imagePickerLabel}>Bike Photo (Optional)</Text>
+          {selectedImage ? (
+            <View style={styles.selectedImageContainer}>
+              <Image
+                source={{ uri: selectedImage }}
+                style={styles.selectedImage}
+                resizeMode="cover"
+              />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={removeImage}
+              >
+                <X color="#ffffff" size={16} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.imagePickerButtons}>
+              <TouchableOpacity
+                style={styles.imagePickerButton}
+                onPress={takePhoto}
+              >
+                <Camera color="#5eead4" size={24} />
+                <Text style={styles.imagePickerButtonText}>Camera</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.imagePickerButton}
+                onPress={pickImage}
+              >
+                <ImageIcon color="#5eead4" size={24} />
+                <Text style={styles.imagePickerButtonText}>Gallery</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
 
         <Button
           title={editingBike ? "Update Bike" : "Add Bike"}
@@ -622,5 +726,54 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#115e59",
+  },
+  imagePickerSection: {
+    marginBottom: 16,
+  },
+  imagePickerLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#a1a1aa",
+    marginBottom: 8,
+  },
+  imagePickerButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  imagePickerButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(94, 234, 212, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(94, 234, 212, 0.3)",
+    borderStyle: "dashed",
+    borderRadius: 12,
+    paddingVertical: 16,
+  },
+  imagePickerButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#5eead4",
+  },
+  selectedImageContainer: {
+    position: "relative",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  selectedImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 12,
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    borderRadius: 12,
+    padding: 6,
   },
 });

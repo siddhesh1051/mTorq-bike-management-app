@@ -274,6 +274,7 @@ class BikeCreate(BaseModel):
     brand: str
     model: str
     registration: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class BikeResponse(BaseModel):
@@ -283,6 +284,7 @@ class BikeResponse(BaseModel):
     brand: Optional[str] = None
     model: str
     registration: Optional[str] = None
+    image_url: Optional[str] = None
     created_at: str
 
 
@@ -290,3 +292,4 @@ class BikeUpdate(BaseModel):
     brand: Optional[str] = None
     model: Optional[str] = None
     registration: Optional[str] = None
+    image_url: Optional[str] = None
