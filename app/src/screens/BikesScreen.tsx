@@ -421,6 +421,12 @@ export const BikesScreen = () => {
             ? "Update your bike details"
             : "Add a new bike to track expenses"
         }
+        footer={
+          <Button
+            title={editingBike ? "Update Bike" : "Add Bike"}
+            onPress={handleSubmit}
+          />
+        }
       >
         <Picker
           label="Brand *"
@@ -490,12 +496,6 @@ export const BikesScreen = () => {
             </View>
           )}
         </View>
-
-        <Button
-          title={editingBike ? "Update Bike" : "Add Bike"}
-          onPress={handleSubmit}
-          style={{ marginTop: 8 }}
-        />
       </ModalDialog>
 
       {/* Delete Confirmation Dialog */}

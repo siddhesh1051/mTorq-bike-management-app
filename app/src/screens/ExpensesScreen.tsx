@@ -465,6 +465,7 @@ export const ExpensesScreen = () => {
         }}
         title="Edit Expense"
         description="Update expense details"
+        footer={<Button title="Update Expense" onPress={handleUpdate} />}
       >
         <Picker
           label="Bike *"
@@ -542,12 +543,6 @@ export const ExpensesScreen = () => {
           multiline
           numberOfLines={3}
           style={{ height: 80, textAlignVertical: "top" }}
-        />
-
-        <Button
-          title="Update Expense"
-          onPress={handleUpdate}
-          style={{ marginTop: 8 }}
         />
       </ModalDialog>
 
