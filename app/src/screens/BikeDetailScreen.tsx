@@ -651,11 +651,11 @@ const styles = StyleSheet.create({
     borderRadius: 0,
   },
   bikeImage: {
-    width: width - 80,
+    width: width - 40,
     height: 180,
   },
   bikeImageCover: {
-    borderRadius: 16,
+    borderRadius: 8,
   },
   bikeInfoSection: {
     paddingHorizontal: 20,

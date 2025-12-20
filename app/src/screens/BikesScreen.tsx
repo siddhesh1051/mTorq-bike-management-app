@@ -8,17 +8,13 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  Dimensions,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Bike as BikeIcon,
   Plus,
-  Edit,
-  Trash2,
   Gauge,
-  Flame,
   Fuel,
   Camera,
   ImageIcon,
@@ -26,9 +22,6 @@ import {
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import {
-  Card,
-  CardHeader,
-  CardContent,
   Button,
   Input,
   ModalDialog,
@@ -41,33 +34,104 @@ import { useToast } from "../context/ToastContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 
-const { width } = Dimensions.get("window");
-
 // Hardcoded bike specs for the modern card design
-const bikeSpecs: Record<
-  string,
-  { power: string; mileage: string; cc: string }
-> = {
-  default: { power: "45 bhp", mileage: "40 kmpl", cc: "400cc" },
+const bikeSpecs: Record<string, { mileage: string }> = {
+  default: { mileage: "40 kmpl" },
+};
+
+// Format registration number: AA 00 AA 0000 or AA 00 A 0000
+// State code (2 letters) + RTO code (2 digits) + Series (1-2 letters) + Number (4 digits)
+const formatRegistrationNumber = (text: string): string => {
+  // Remove all non-alphanumeric characters and convert to uppercase
+  const cleaned = text.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+
+  if (cleaned.length === 0) return "";
+
+  let result = "";
+  let index = 0;
+
+  // State code: First 2 letters
+  while (index < cleaned.length && index < 2) {
+    const char = cleaned[index];
+    if (/[A-Z]/.test(char)) {
+      result += char;
+    }
+    index++;
+  }
+
+  // RTO code: Next 2 digits
+  if (index < cleaned.length && result.length === 2) {
+    result += " ";
+    let digitCount = 0;
+    while (index < cleaned.length && digitCount < 2) {
+      const char = cleaned[index];
+      if (/[0-9]/.test(char)) {
+        result += char;
+        digitCount++;
+      }
+      index++;
+    }
+  }
+
+  // Series code: Next 1-2 letters
+  // We need to look ahead to determine if it's 1 or 2 letters
+  if (index < cleaned.length) {
+    const remaining = cleaned.slice(index);
+    // Count how many letters are at the start
+    let letterCount = 0;
+    for (let i = 0; i < remaining.length && /[A-Z]/.test(remaining[i]); i++) {
+      letterCount++;
+    }
+
+    // Count how many digits follow the letters
+    let digitStartIndex = letterCount;
+    let followingDigits = 0;
+    for (
+      let i = digitStartIndex;
+      i < remaining.length && /[0-9]/.test(remaining[i]);
+      i++
+    ) {
+      followingDigits++;
+    }
+
+    // Determine series length: if we have enough chars for full format, use up to 2 letters
+    // Otherwise, be flexible
+    let seriesLength = Math.min(letterCount, 2);
+
+    if (seriesLength > 0) {
+      result += " ";
+      for (let i = 0; i < seriesLength; i++) {
+        result += remaining[i];
+      }
+      index += seriesLength;
+    }
+  }
+
+  // Unique number: Last 4 digits
+  if (index < cleaned.length) {
+    result += " ";
+    let digitCount = 0;
+    while (index < cleaned.length && digitCount < 4) {
+      const char = cleaned[index];
+      if (/[0-9]/.test(char)) {
+        result += char;
+        digitCount++;
+      }
+      index++;
+    }
+  }
+
+  return result;
 };
 
 const BikeImage = require("../../assets/bike.png");
 
 interface BikeCardProps {
   bike: Bike;
-  onEdit: (bike: Bike) => void;
-  onDelete: (bike: Bike) => void;
   onPress: (bike: Bike) => void;
-  index: number;
 }
 
-const BikeCard: React.FC<BikeCardProps> = ({
-  bike,
-  onEdit,
-  onDelete,
-  onPress,
-  index,
-}) => {
+const BikeCard: React.FC<BikeCardProps> = ({ bike, onPress }) => {
   const specs = bikeSpecs[bike.model] || bikeSpecs.default;
 
   return (
@@ -76,9 +140,29 @@ const BikeCard: React.FC<BikeCardProps> = ({
       onPress={() => onPress(bike)}
       activeOpacity={0.8}
     >
-      {/* Main content area with bike image on top */}
+      {/* Background bike image */}
+      <View style={styles.backgroundImageContainer}>
+        <Image
+          source={bike.image_url ? { uri: bike.image_url } : BikeImage}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
+        {/* Gradient overlay for text readability */}
+        <LinearGradient
+          colors={[
+            "rgba(9, 9, 11, 0.95)",
+            "rgba(9, 9, 11, 0.4)",
+            "rgba(9, 9, 11, 0.2)",
+          ]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.backgroundOverlay}
+        />
+      </View>
+
+      {/* Main content area */}
       <View style={styles.cardContent}>
-        {/* Text info - positioned below the image */}
+        {/* Text info */}
         <View style={styles.textSection}>
           {bike.registration && (
             <View style={styles.registrationBadge}>
@@ -92,35 +176,22 @@ const BikeCard: React.FC<BikeCardProps> = ({
           <Text style={styles.bikeBrand}>{bike.brand}</Text>
           <Text style={styles.bikeModel}>{bike.model}</Text>
         </View>
-
-        {/* Bike image - floating on top right */}
-        <View style={styles.imageContainer}>
-          <Image
-            source={bike.image_url ? { uri: bike.image_url } : BikeImage}
-            style={styles.bikeImage}
-            resizeMode={bike.image_url ? "cover" : "contain"}
-          />
-        </View>
       </View>
 
       {/* Specs Row */}
       <LinearGradient
-        colors={["rgba(130, 130, 130, 0.5)", "rgba(9, 9, 11, 0)"]}
+        colors={["rgba(9, 9, 11, 0.95)", "rgba(9, 9, 11, 0.7)"]}
         start={{ x: 0.5, y: 1 }}
         end={{ x: 0.5, y: 0 }}
         style={styles.specsRow}
       >
         <View style={styles.specItem}>
-          <Flame color="#ffffff80" size={20} strokeWidth={1.5} />
-          <Text style={styles.specText}>{specs.power}</Text>
+          <Fuel color="#ffffff80" size={20} strokeWidth={1.5} />
+          <Text style={styles.specText}>{specs.mileage}</Text>
         </View>
         <View style={styles.specItem}>
           <Gauge color="#ffffff80" size={20} strokeWidth={1.5} />
-          <Text style={styles.specText}>{specs.cc}</Text>
-        </View>
-        <View style={styles.specItem}>
-          <Fuel color="#ffffff80" size={20} strokeWidth={1.5} />
-          <Text style={styles.specText}>{specs.mileage}</Text>
+          <Text style={styles.specText}>0 km</Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -398,14 +469,7 @@ export const BikesScreen = () => {
             </View>
           ) : (
             bikes.map((bike, index) => (
-              <BikeCard
-                key={bike.id}
-                bike={bike}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onPress={handleCardPress}
-                index={index}
-              />
+              <BikeCard key={bike.id} bike={bike} onPress={handleCardPress} />
             ))
           )}
         </ScrollView>
@@ -452,12 +516,14 @@ export const BikesScreen = () => {
 
         <Input
           label="Registration Number (Optional)"
-          placeholder="e.g., DL-01-AB-1234"
+          placeholder="e.g., MH 12 AB 1234"
           value={formData.registration}
-          onChangeText={(text) =>
-            setFormData({ ...formData, registration: text })
-          }
+          onChangeText={(text) => {
+            const formatted = formatRegistrationNumber(text);
+            setFormData({ ...formData, registration: formatted });
+          }}
           autoCapitalize="characters"
+          maxLength={13}
         />
 
         {/* Image Picker Section */}
@@ -577,37 +643,61 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 20,
     paddingBottom: 100,
-    overflow: "visible",
   },
   cardContainer: {
-    // backgroundColor: "#18181b",
     borderRadius: 16,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
-    overflow: "visible",
+    overflow: "hidden",
     position: "relative",
   },
+  backgroundImageContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  backgroundImage: {
+    width: "100%",
+    height: "100%",
+  },
+  backgroundOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   cardContent: {
-    paddingBottom: 28,
+    paddingBottom: 12,
+    zIndex: 2,
   },
   textSection: {
-    paddingLeft: 12,
-    paddingTop: 12,
-    zIndex: 1,
+    paddingLeft: 16,
+    paddingTop: 8,
+    zIndex: 2,
   },
   bikeBrand: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "900",
-    color: "#ffffff90",
+    color: "#ffffff",
     letterSpacing: -1,
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   bikeModel: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#a1a1aa",
+    color: "#e4e4e7",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   registrationBadge: {
     backgroundColor: "rgba(255,255,255,0.08)",
@@ -623,27 +713,12 @@ const styles = StyleSheet.create({
     color: "#a1a1aa",
     letterSpacing: 1.5,
   },
-  imageContainer: {
-    position: "absolute",
-    top: 0,
-    right: -40,
-    width: width * 0.7,
-    height: 160,
-    zIndex: 10,
-  },
-  bikeImage: {
-    width: "100%",
-    height: "100%",
-  },
   specsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 16,
-    paddingTop: 32,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    overflow: "hidden",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    zIndex: 2,
   },
   specItem: {
     alignItems: "center",
