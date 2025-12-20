@@ -7,9 +7,12 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   TextInput,
+  Platform,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Search, Filter, Edit, Trash2 } from "lucide-react-native";
+import { Search, Edit, Trash2, Calendar } from "lucide-react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   Card,
   CardContent,
@@ -33,6 +36,11 @@ export const ExpensesScreen = () => {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterBike, setFilterBike] = useState("all");
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -154,13 +162,76 @@ export const ExpensesScreen = () => {
       filterType !== "all" ? expense.type === filterType : true;
     const matchesBike =
       filterBike !== "all" ? expense.bike_id === filterBike : true;
-    return matchesSearch && matchesType && matchesBike;
+    
+    // Date range filtering
+    const expenseDate = new Date(expense.date);
+    const matchesStartDate = startDate
+      ? expenseDate >= new Date(startDate.setHours(0, 0, 0, 0))
+      : true;
+    const matchesEndDate = endDate
+      ? expenseDate <= new Date(endDate.setHours(23, 59, 59, 999))
+      : true;
+    
+    return matchesSearch && matchesType && matchesBike && matchesStartDate && matchesEndDate;
   });
+
+  const handleStartDateChange = (event: any, date?: Date) => {
+    if (Platform.OS === "android") {
+      setShowStartDatePicker(false);
+    }
+    if (date) {
+      setTempDate(date);
+      if (Platform.OS === "android") {
+        setStartDate(date);
+      }
+    }
+  };
+
+  const handleEndDateChange = (event: any, date?: Date) => {
+    if (Platform.OS === "android") {
+      setShowEndDatePicker(false);
+    }
+    if (date) {
+      setTempDate(date);
+      if (Platform.OS === "android") {
+        setEndDate(date);
+      }
+    }
+  };
+
+  const confirmStartDate = () => {
+    setStartDate(tempDate);
+    setShowStartDatePicker(false);
+  };
+
+  const confirmEndDate = () => {
+    setEndDate(tempDate);
+    setShowEndDatePicker(false);
+  };
+
+  const clearDateFilter = () => {
+    setStartDate(null);
+    setEndDate(null);
+  };
 
   const typeColors: Record<string, string> = {
     Fuel: "#60a5fa",
     Service: "#f87171",
     Insurance: "#4ade80",
+    PUC: "#a3e635",
+    Tyres: "#818cf8",
+    Battery: "#f472b6",
+    "Spare Parts": "#fb7185",
+    Repair: "#ef4444",
+    Accessories: "#38bdf8",
+    Gear: "#0ea5e9",
+    Modification: "#8b5cf6",
+    Toll: "#94a3b8",
+    Parking: "#64748b",
+    Washing: "#06b6d4",
+    "Registration/RTO": "#34d399",
+    "Fines/Challan": "#f43f5e",
+    EMI: "#10b981",
     Other: "#fbbf24",
   };
 
@@ -219,35 +290,94 @@ export const ExpensesScreen = () => {
                   </View>
                 </View>
 
-                {/* Type Filter */}
-                <Picker
-                  label="Type"
-                  placeholder="All Types"
-                  value={filterType}
-                  options={[
-                    { label: "All Types", value: "all" },
-                    { label: "Fuel", value: "Fuel" },
-                    { label: "Service", value: "Service" },
-                    { label: "Insurance", value: "Insurance" },
-                    { label: "Other", value: "Other" },
-                  ]}
-                  onValueChange={setFilterType}
-                />
+                {/* Type & Bike Filters */}
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Picker
+                      label="Type"
+                      placeholder="All Types"
+                      value={filterType}
+                      options={[
+                        { label: "All Types", value: "all" },
+                        { label: "Fuel", value: "Fuel" },
+                        { label: "Service", value: "Service" },
+                        { label: "Insurance", value: "Insurance" },
+                        { label: "PUC", value: "PUC" },
+                        { label: "Tyres", value: "Tyres" },
+                        { label: "Battery", value: "Battery" },
+                        { label: "Spare Parts", value: "Spare Parts" },
+                        { label: "Repair", value: "Repair" },
+                        { label: "Accessories", value: "Accessories" },
+                        { label: "Gear", value: "Gear" },
+                        { label: "Modification", value: "Modification" },
+                        { label: "Toll", value: "Toll" },
+                        { label: "Parking", value: "Parking" },
+                        { label: "Washing", value: "Washing" },
+                        { label: "Registration/RTO", value: "Registration/RTO" },
+                        { label: "Fines/Challan", value: "Fines/Challan" },
+                        { label: "EMI", value: "EMI" },
+                        { label: "Other", value: "Other" },
+                      ]}
+                      onValueChange={setFilterType}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Picker
+                      label="Bike"
+                      placeholder="All Bikes"
+                      value={filterBike}
+                      options={[
+                        { label: "All Bikes", value: "all" },
+                        ...bikes.map((bike) => ({
+                          label: `${bike.brand || ""} ${bike.model}`.trim(),
+                          value: bike.id,
+                        })),
+                      ]}
+                      onValueChange={setFilterBike}
+                    />
+                  </View>
+                </View>
 
-                {/* Bike Filter */}
-                <Picker
-                  label="Bike"
-                  placeholder="All Bikes"
-                  value={filterBike}
-                  options={[
-                    { label: "All Bikes", value: "all" },
-                    ...bikes.map((bike) => ({
-                      label: `${bike.brand || ""} ${bike.model}`.trim(),
-                      value: bike.id,
-                    })),
-                  ]}
-                  onValueChange={setFilterBike}
-                />
+                {/* Date Range Filter */}
+                <View className="mt-2">
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-zinc-300 text-sm">Date Range</Text>
+                    {(startDate || endDate) && (
+                      <TouchableOpacity onPress={clearDateFilter}>
+                        <Text className="text-primary text-sm">Clear</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <View className="flex-row gap-3">
+                    {/* Start Date */}
+                    <TouchableOpacity
+                      className="flex-1 h-12 bg-zinc-900/50 border border-white/10 rounded-lg px-4 flex-row justify-between items-center"
+                      onPress={() => {
+                        setTempDate(startDate || new Date());
+                        setShowStartDatePicker(true);
+                      }}
+                    >
+                      <Text className={startDate ? "text-white" : "text-zinc-500"}>
+                        {startDate ? format(startDate, "dd MMM yyyy") : "From"}
+                      </Text>
+                      <Calendar color="#71717a" size={18} />
+                    </TouchableOpacity>
+
+                    {/* End Date */}
+                    <TouchableOpacity
+                      className="flex-1 h-12 bg-zinc-900/50 border border-white/10 rounded-lg px-4 flex-row justify-between items-center"
+                      onPress={() => {
+                        setTempDate(endDate || new Date());
+                        setShowEndDatePicker(true);
+                      }}
+                    >
+                      <Text className={endDate ? "text-white" : "text-zinc-500"}>
+                        {endDate ? format(endDate, "dd MMM yyyy") : "To"}
+                      </Text>
+                      <Calendar color="#71717a" size={18} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </CardContent>
             </Card>
 
@@ -355,6 +485,20 @@ export const ExpensesScreen = () => {
             { label: "Fuel", value: "Fuel" },
             { label: "Service", value: "Service" },
             { label: "Insurance", value: "Insurance" },
+            { label: "PUC", value: "PUC" },
+            { label: "Tyres", value: "Tyres" },
+            { label: "Battery", value: "Battery" },
+            { label: "Spare Parts", value: "Spare Parts" },
+            { label: "Repair", value: "Repair" },
+            { label: "Accessories", value: "Accessories" },
+            { label: "Gear", value: "Gear" },
+            { label: "Modification", value: "Modification" },
+            { label: "Toll", value: "Toll" },
+            { label: "Parking", value: "Parking" },
+            { label: "Washing", value: "Washing" },
+            { label: "Registration/RTO", value: "Registration/RTO" },
+            { label: "Fines/Challan", value: "Fines/Challan" },
+            { label: "EMI", value: "EMI" },
             { label: "Other", value: "Other" },
           ]}
           onValueChange={(value) => setFormData({ ...formData, type: value })}
@@ -418,6 +562,110 @@ export const ExpensesScreen = () => {
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
       />
+
+      {/* Start Date Picker */}
+      {Platform.OS === "ios" ? (
+        <Modal
+          visible={showStartDatePicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowStartDatePicker(false)}
+        >
+          <TouchableOpacity
+            className="flex-1 bg-black/80 justify-end"
+            activeOpacity={1}
+            onPress={() => setShowStartDatePicker(false)}
+          >
+            <View className="bg-zinc-900 rounded-t-2xl border-t border-white/10">
+              <View className="flex-row justify-between items-center px-4 py-3 border-b border-white/10">
+                <TouchableOpacity onPress={() => setShowStartDatePicker(false)}>
+                  <Text className="text-zinc-400 text-base">Cancel</Text>
+                </TouchableOpacity>
+                <Text className="text-white text-base font-semibold">
+                  From Date
+                </Text>
+                <TouchableOpacity onPress={confirmStartDate}>
+                  <Text className="text-primary text-base font-semibold">
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display="spinner"
+                onChange={handleStartDateChange}
+                maximumDate={endDate || new Date()}
+                textColor="#ffffff"
+                style={{ height: 200 }}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      ) : (
+        showStartDatePicker && (
+          <DateTimePicker
+            value={tempDate}
+            mode="date"
+            display="default"
+            onChange={handleStartDateChange}
+            maximumDate={endDate || new Date()}
+          />
+        )
+      )}
+
+      {/* End Date Picker */}
+      {Platform.OS === "ios" ? (
+        <Modal
+          visible={showEndDatePicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowEndDatePicker(false)}
+        >
+          <TouchableOpacity
+            className="flex-1 bg-black/80 justify-end"
+            activeOpacity={1}
+            onPress={() => setShowEndDatePicker(false)}
+          >
+            <View className="bg-zinc-900 rounded-t-2xl border-t border-white/10">
+              <View className="flex-row justify-between items-center px-4 py-3 border-b border-white/10">
+                <TouchableOpacity onPress={() => setShowEndDatePicker(false)}>
+                  <Text className="text-zinc-400 text-base">Cancel</Text>
+                </TouchableOpacity>
+                <Text className="text-white text-base font-semibold">
+                  To Date
+                </Text>
+                <TouchableOpacity onPress={confirmEndDate}>
+                  <Text className="text-primary text-base font-semibold">
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display="spinner"
+                onChange={handleEndDateChange}
+                minimumDate={startDate || undefined}
+                maximumDate={new Date()}
+                textColor="#ffffff"
+                style={{ height: 200 }}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      ) : (
+        showEndDatePicker && (
+          <DateTimePicker
+            value={tempDate}
+            mode="date"
+            display="default"
+            onChange={handleEndDateChange}
+            minimumDate={startDate || undefined}
+            maximumDate={new Date()}
+          />
+        )
+      )}
     </SafeAreaView>
   );
 };

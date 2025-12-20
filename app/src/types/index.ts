@@ -40,13 +40,20 @@ export type ExpenseType =
   | "Fuel"
   | "Service"
   | "Insurance"
-  | "Accessories"
-  | "Spare Parts"
+  | "PUC"
   | "Tyres"
   | "Battery"
+  | "Spare Parts"
+  | "Repair"
+  | "Accessories"
+  | "Gear"
+  | "Modification"
   | "Toll"
   | "Parking"
   | "Washing"
+  | "Registration/RTO"
+  | "Fines/Challan"
+  | "EMI"
   | "Other";
 
 export interface Expense {

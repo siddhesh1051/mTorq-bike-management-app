@@ -42,6 +42,20 @@ export const AnalyticsScreen = () => {
     Fuel: "#60a5fa",
     Service: "#f87171",
     Insurance: "#4ade80",
+    PUC: "#a3e635",
+    Tyres: "#818cf8",
+    Battery: "#f472b6",
+    "Spare Parts": "#fb7185",
+    Repair: "#ef4444",
+    Accessories: "#38bdf8",
+    Gear: "#0ea5e9",
+    Modification: "#8b5cf6",
+    Toll: "#94a3b8",
+    Parking: "#64748b",
+    Washing: "#06b6d4",
+    "Registration/RTO": "#34d399",
+    "Fines/Challan": "#f43f5e",
+    EMI: "#10b981",
     Other: "#fbbf24",
   };
 
@@ -148,3 +162,4 @@ export const AnalyticsScreen = () => {
     </SafeAreaView>
   );
 };
+
