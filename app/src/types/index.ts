@@ -27,6 +27,7 @@ export interface Bike {
   brand?: string;
   model: string;
   registration?: string;
+  image_url?: string;
   created_at: string;
 }
 
@@ -34,19 +35,27 @@ export interface BikeCreate {
   brand: string;
   model: string;
   registration?: string;
+  image_url?: string;
 }
 
 export type ExpenseType =
   | "Fuel"
   | "Service"
   | "Insurance"
-  | "Accessories"
-  | "Spare Parts"
+  | "PUC"
   | "Tyres"
   | "Battery"
+  | "Spare Parts"
+  | "Repair"
+  | "Accessories"
+  | "Gear"
+  | "Modification"
   | "Toll"
   | "Parking"
   | "Washing"
+  | "Registration/RTO"
+  | "Fines/Challan"
+  | "EMI"
   | "Other";
 
 export interface Expense {

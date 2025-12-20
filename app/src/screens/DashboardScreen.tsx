@@ -4,16 +4,74 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Calendar, Plus, IndianRupee } from "lucide-react-native";
-import { Card, CardHeader, CardContent } from "../components";
+import { Card, CardHeader, CardContent, Skeleton } from "../components";
 import { DashboardStats } from "../types";
 import apiService from "../services/api";
 import { format } from "date-fns";
 import { useNavigation } from "@react-navigation/native";
+
+// Skeleton for expense item
+const ExpenseItemSkeleton = () => (
+  <View className="flex-row justify-between items-center p-3 bg-zinc-900/50 rounded border border-white/5 mb-2">
+    <View className="flex-1">
+      <Skeleton width={80} height={18} borderRadius={6} />
+      <Skeleton width={100} height={14} borderRadius={4} style={{ marginTop: 6 }} />
+    </View>
+    <Skeleton width={70} height={24} borderRadius={6} />
+  </View>
+);
+
+// Full dashboard skeleton
+const DashboardSkeleton = () => (
+  <SafeAreaView className="flex-1 bg-background">
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 80,
+      }}
+    >
+      {/* Header skeleton */}
+      <View className="mb-6">
+        <Skeleton width={180} height={40} borderRadius={8} />
+        <Skeleton width={240} height={18} borderRadius={6} style={{ marginTop: 10 }} />
+      </View>
+
+      {/* Total Expenses Card skeleton */}
+      <Card style={{ marginBottom: 16 }}>
+        <CardHeader>
+          <View className="flex-row justify-between items-center">
+            <Skeleton width={100} height={14} borderRadius={4} />
+            <Skeleton width={20} height={20} borderRadius={10} />
+          </View>
+        </CardHeader>
+        <CardContent>
+          <Skeleton width={160} height={36} borderRadius={8} />
+        </CardContent>
+      </Card>
+
+      {/* Recent Expenses Card skeleton */}
+      <Card style={{ marginBottom: 16 }}>
+        <CardHeader>
+          <View className="flex-row items-center">
+            <Skeleton width={20} height={20} borderRadius={10} />
+            <Skeleton width={150} height={24} borderRadius={6} style={{ marginLeft: 8 }} />
+          </View>
+        </CardHeader>
+        <CardContent>
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+        </CardContent>
+      </Card>
+    </ScrollView>
+  </SafeAreaView>
+);
 
 export const DashboardScreen = () => {
   const navigation = useNavigation();
@@ -43,14 +101,7 @@ export const DashboardScreen = () => {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#ccfbf1" />
-          <Text className="text-zinc-400 mt-4">Loading dashboard...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

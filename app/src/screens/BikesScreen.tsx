@@ -4,32 +4,29 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
   TouchableOpacity,
   Image,
   StyleSheet,
-  Dimensions,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Bike as BikeIcon,
   Plus,
-  Edit,
-  Trash2,
   Gauge,
-  Flame,
   Fuel,
-  ChevronDown,
+  Camera,
+  ImageIcon,
+  X,
 } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
 import {
-  Card,
-  CardHeader,
-  CardContent,
   Button,
   Input,
   ModalDialog,
   Picker,
   ConfirmDialog,
+  Skeleton,
 } from "../components";
 import { Bike, BikeCreate, BrandModelsMap } from "../types";
 import apiService from "../services/api";
@@ -37,33 +34,181 @@ import { useToast } from "../context/ToastContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 
-const { width } = Dimensions.get("window");
-
 // Hardcoded bike specs for the modern card design
-const bikeSpecs: Record<
-  string,
-  { power: string; mileage: string; cc: string }
-> = {
-  default: { power: "45 bhp", mileage: "40 kmpl", cc: "400cc" },
+const bikeSpecs: Record<string, { mileage: string }> = {
+  default: { mileage: "40 kmpl" },
+};
+
+// Format registration number: AA 00 AA 0000 or AA 00 A 0000
+// State code (2 letters) + RTO code (2 digits) + Series (1-2 letters) + Number (4 digits)
+const formatRegistrationNumber = (text: string): string => {
+  // Remove all non-alphanumeric characters and convert to uppercase
+  const cleaned = text.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+
+  if (cleaned.length === 0) return "";
+
+  let result = "";
+  let index = 0;
+
+  // State code: First 2 letters
+  while (index < cleaned.length && index < 2) {
+    const char = cleaned[index];
+    if (/[A-Z]/.test(char)) {
+      result += char;
+    }
+    index++;
+  }
+
+  // RTO code: Next 2 digits
+  if (index < cleaned.length && result.length === 2) {
+    result += " ";
+    let digitCount = 0;
+    while (index < cleaned.length && digitCount < 2) {
+      const char = cleaned[index];
+      if (/[0-9]/.test(char)) {
+        result += char;
+        digitCount++;
+      }
+      index++;
+    }
+  }
+
+  // Series code: Next 1-2 letters
+  // We need to look ahead to determine if it's 1 or 2 letters
+  if (index < cleaned.length) {
+    const remaining = cleaned.slice(index);
+    // Count how many letters are at the start
+    let letterCount = 0;
+    for (let i = 0; i < remaining.length && /[A-Z]/.test(remaining[i]); i++) {
+      letterCount++;
+    }
+
+    // Count how many digits follow the letters
+    let digitStartIndex = letterCount;
+    let followingDigits = 0;
+    for (
+      let i = digitStartIndex;
+      i < remaining.length && /[0-9]/.test(remaining[i]);
+      i++
+    ) {
+      followingDigits++;
+    }
+
+    // Determine series length: if we have enough chars for full format, use up to 2 letters
+    // Otherwise, be flexible
+    let seriesLength = Math.min(letterCount, 2);
+
+    if (seriesLength > 0) {
+      result += " ";
+      for (let i = 0; i < seriesLength; i++) {
+        result += remaining[i];
+      }
+      index += seriesLength;
+    }
+  }
+
+  // Unique number: Last 4 digits
+  if (index < cleaned.length) {
+    result += " ";
+    let digitCount = 0;
+    while (index < cleaned.length && digitCount < 4) {
+      const char = cleaned[index];
+      if (/[0-9]/.test(char)) {
+        result += char;
+        digitCount++;
+      }
+      index++;
+    }
+  }
+
+  return result;
 };
 
 const BikeImage = require("../../assets/bike.png");
 
+// Skeleton component for bike cards
+const BikeCardSkeleton = () => (
+  <View style={styles.cardContainer}>
+    <View style={styles.skeletonCardContent}>
+      {/* Registration badge skeleton */}
+      <Skeleton
+        width={100}
+        height={28}
+        borderRadius={8}
+        style={{ marginBottom: 12 }}
+      />
+      {/* Brand skeleton */}
+      <Skeleton
+        width={140}
+        height={28}
+        borderRadius={6}
+        style={{ marginBottom: 8 }}
+      />
+      {/* Model skeleton */}
+      <Skeleton width={100} height={20} borderRadius={6} />
+    </View>
+    {/* Specs row skeleton */}
+    <View style={styles.skeletonSpecsRow}>
+      <View style={styles.skeletonSpecItem}>
+        <Skeleton width={24} height={24} borderRadius={12} />
+        <Skeleton
+          width={60}
+          height={16}
+          borderRadius={4}
+          style={{ marginTop: 8 }}
+        />
+      </View>
+      <View style={styles.skeletonSpecItem}>
+        <Skeleton width={24} height={24} borderRadius={12} />
+        <Skeleton
+          width={50}
+          height={16}
+          borderRadius={4}
+          style={{ marginTop: 8 }}
+        />
+      </View>
+    </View>
+  </View>
+);
+
+const BikesScreenSkeleton = () => (
+  <SafeAreaView style={styles.container}>
+    <View style={styles.content}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View>
+            <Skeleton width={120} height={32} borderRadius={8} />
+            <Skeleton
+              width={150}
+              height={16}
+              borderRadius={6}
+              style={{ marginTop: 8 }}
+            />
+          </View>
+          <Skeleton width={48} height={48} borderRadius={16} />
+        </View>
+      </View>
+      {/* Bike cards skeleton */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <BikeCardSkeleton />
+        <BikeCardSkeleton />
+        <BikeCardSkeleton />
+      </ScrollView>
+    </View>
+  </SafeAreaView>
+);
+
 interface BikeCardProps {
   bike: Bike;
-  onEdit: (bike: Bike) => void;
-  onDelete: (bike: Bike) => void;
   onPress: (bike: Bike) => void;
-  index: number;
 }
 
-const BikeCard: React.FC<BikeCardProps> = ({
-  bike,
-  onEdit,
-  onDelete,
-  onPress,
-  index,
-}) => {
+const BikeCard: React.FC<BikeCardProps> = ({ bike, onPress }) => {
   const specs = bikeSpecs[bike.model] || bikeSpecs.default;
 
   return (
@@ -72,9 +217,29 @@ const BikeCard: React.FC<BikeCardProps> = ({
       onPress={() => onPress(bike)}
       activeOpacity={0.8}
     >
-      {/* Main content area with bike image on top */}
+      {/* Background bike image */}
+      <View style={styles.backgroundImageContainer}>
+        <Image
+          source={bike.image_url ? { uri: bike.image_url } : BikeImage}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
+        {/* Gradient overlay for text readability */}
+        <LinearGradient
+          colors={[
+            "rgba(9, 9, 11, 0.95)",
+            "rgba(9, 9, 11, 0.4)",
+            "rgba(9, 9, 11, 0.2)",
+          ]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.backgroundOverlay}
+        />
+      </View>
+
+      {/* Main content area */}
       <View style={styles.cardContent}>
-        {/* Text info - positioned below the image */}
+        {/* Text info */}
         <View style={styles.textSection}>
           {bike.registration && (
             <View style={styles.registrationBadge}>
@@ -88,35 +253,22 @@ const BikeCard: React.FC<BikeCardProps> = ({
           <Text style={styles.bikeBrand}>{bike.brand}</Text>
           <Text style={styles.bikeModel}>{bike.model}</Text>
         </View>
-
-        {/* Bike image - floating on top right */}
-        <View style={styles.imageContainer}>
-          <Image
-            source={BikeImage}
-            style={styles.bikeImage}
-            resizeMode="contain"
-          />
-        </View>
       </View>
 
       {/* Specs Row */}
       <LinearGradient
-        colors={["rgba(130, 130, 130, 0.5)", "rgba(9, 9, 11, 0)"]}
+        colors={["rgba(9, 9, 11, 0.95)", "rgba(9, 9, 11, 0.7)"]}
         start={{ x: 0.5, y: 1 }}
         end={{ x: 0.5, y: 0 }}
         style={styles.specsRow}
       >
         <View style={styles.specItem}>
-          <Flame color="#ffffff80" size={20} strokeWidth={1.5} />
-          <Text style={styles.specText}>{specs.power}</Text>
+          <Fuel color="#ffffff80" size={20} strokeWidth={1.5} />
+          <Text style={styles.specText}>{specs.mileage}</Text>
         </View>
         <View style={styles.specItem}>
           <Gauge color="#ffffff80" size={20} strokeWidth={1.5} />
-          <Text style={styles.specText}>{specs.cc}</Text>
-        </View>
-        <View style={styles.specItem}>
-          <Fuel color="#ffffff80" size={20} strokeWidth={1.5} />
-          <Text style={styles.specText}>{specs.mileage}</Text>
+          <Text style={styles.specText}>0 km</Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -139,7 +291,9 @@ export const BikesScreen = () => {
     brand: "",
     model: "",
     registration: "",
+    image_url: "",
   });
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBikes();
@@ -212,7 +366,11 @@ export const BikesScreen = () => {
       brand: brand,
       model: bike.model,
       registration: bike.registration || "",
+      image_url: bike.image_url || "",
     });
+    if (bike.image_url) {
+      setSelectedImage(bike.image_url);
+    }
     if (brand && brandsModels[brand]) {
       setAvailableModels(brandsModels[brand]);
     }
@@ -250,14 +408,71 @@ export const BikesScreen = () => {
   };
 
   const resetForm = () => {
-    setFormData({ brand: "", model: "", registration: "" });
+    setFormData({ brand: "", model: "", registration: "", image_url: "" });
     setAvailableModels([]);
     setEditingBike(null);
+    setSelectedImage(null);
   };
 
   const handleBrandChange = (brand: string) => {
     setFormData({ ...formData, brand, model: "" });
     setAvailableModels(brandsModels[brand] || []);
+  };
+
+  const pickImage = async () => {
+    // Request permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Please grant camera roll permissions to upload images."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setSelectedImage(result.assets[0].uri);
+      setFormData({ ...formData, image_url: base64Image });
+    }
+  };
+
+  const takePhoto = async () => {
+    // Request camera permission
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Please grant camera permissions to take photos."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setSelectedImage(result.assets[0].uri);
+      setFormData({ ...formData, image_url: base64Image });
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setFormData({ ...formData, image_url: "" });
   };
 
   const handleModalClose = () => {
@@ -270,14 +485,7 @@ export const BikesScreen = () => {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color="#5eead4" />
-          <Text style={styles.loadingText}>Loading bikes...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <BikesScreenSkeleton />;
   }
 
   return (
@@ -331,14 +539,7 @@ export const BikesScreen = () => {
             </View>
           ) : (
             bikes.map((bike, index) => (
-              <BikeCard
-                key={bike.id}
-                bike={bike}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onPress={handleCardPress}
-                index={index}
-              />
+              <BikeCard key={bike.id} bike={bike} onPress={handleCardPress} />
             ))
           )}
         </ScrollView>
@@ -353,6 +554,12 @@ export const BikesScreen = () => {
           editingBike
             ? "Update your bike details"
             : "Add a new bike to track expenses"
+        }
+        footer={
+          <Button
+            title={editingBike ? "Update Bike" : "Add Bike"}
+            onPress={handleSubmit}
+          />
         }
       >
         <Picker
@@ -379,19 +586,52 @@ export const BikesScreen = () => {
 
         <Input
           label="Registration Number (Optional)"
-          placeholder="e.g., DL-01-AB-1234"
+          placeholder="e.g., MH 12 AB 1234"
           value={formData.registration}
-          onChangeText={(text) =>
-            setFormData({ ...formData, registration: text })
-          }
+          onChangeText={(text) => {
+            const formatted = formatRegistrationNumber(text);
+            setFormData({ ...formData, registration: formatted });
+          }}
           autoCapitalize="characters"
+          maxLength={13}
         />
 
-        <Button
-          title={editingBike ? "Update Bike" : "Add Bike"}
-          onPress={handleSubmit}
-          style={{ marginTop: 8 }}
-        />
+        {/* Image Picker Section */}
+        <View style={styles.imagePickerSection}>
+          <Text style={styles.imagePickerLabel}>Bike Photo (Optional)</Text>
+          {selectedImage ? (
+            <View style={styles.selectedImageContainer}>
+              <Image
+                source={{ uri: selectedImage }}
+                style={styles.selectedImage}
+                resizeMode="cover"
+              />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={removeImage}
+              >
+                <X color="#ffffff" size={16} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.imagePickerButtons}>
+              <TouchableOpacity
+                style={styles.imagePickerButton}
+                onPress={takePhoto}
+              >
+                <Camera color="#5eead4" size={24} />
+                <Text style={styles.imagePickerButtonText}>Camera</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.imagePickerButton}
+                onPress={pickImage}
+              >
+                <ImageIcon color="#5eead4" size={24} />
+                <Text style={styles.imagePickerButtonText}>Gallery</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </ModalDialog>
 
       {/* Delete Confirmation Dialog */}
@@ -413,20 +653,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#09090b",
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: "#09090b",
-  },
-  loadingContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    color: "#71717a",
-    marginTop: 16,
-    fontSize: 16,
   },
   content: {
     flex: 1,
@@ -473,37 +699,61 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 20,
     paddingBottom: 100,
-    overflow: "visible",
   },
   cardContainer: {
-    // backgroundColor: "#18181b",
     borderRadius: 16,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
-    overflow: "visible",
+    overflow: "hidden",
     position: "relative",
   },
+  backgroundImageContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  backgroundImage: {
+    width: "100%",
+    height: "100%",
+  },
+  backgroundOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   cardContent: {
-    paddingBottom: 28,
+    paddingBottom: 12,
+    zIndex: 2,
   },
   textSection: {
-    paddingLeft: 12,
-    paddingTop: 12,
-    zIndex: 1,
+    paddingLeft: 16,
+    paddingTop: 8,
+    zIndex: 2,
   },
   bikeBrand: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "900",
-    color: "#ffffff90",
+    color: "#ffffff",
     letterSpacing: -1,
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   bikeModel: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#a1a1aa",
+    color: "#e4e4e7",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   registrationBadge: {
     backgroundColor: "rgba(255,255,255,0.08)",
@@ -519,27 +769,12 @@ const styles = StyleSheet.create({
     color: "#a1a1aa",
     letterSpacing: 1.5,
   },
-  imageContainer: {
-    position: "absolute",
-    top: 0,
-    right: -40,
-    width: width * 0.7,
-    height: 160,
-    zIndex: 10,
-  },
-  bikeImage: {
-    width: "100%",
-    height: "100%",
-  },
   specsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 16,
-    paddingTop: 32,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    overflow: "hidden",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    zIndex: 2,
   },
   specItem: {
     alignItems: "center",
@@ -622,5 +857,70 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#115e59",
+  },
+  imagePickerSection: {
+    marginBottom: 16,
+  },
+  imagePickerLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#a1a1aa",
+    marginBottom: 8,
+  },
+  imagePickerButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  imagePickerButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(94, 234, 212, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(94, 234, 212, 0.3)",
+    borderStyle: "dashed",
+    borderRadius: 12,
+    paddingVertical: 16,
+  },
+  imagePickerButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#5eead4",
+  },
+  selectedImageContainer: {
+    position: "relative",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  selectedImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 12,
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    borderRadius: 12,
+    padding: 6,
+  },
+  skeletonCardContent: {
+    padding: 16,
+    paddingBottom: 20,
+  },
+  skeletonSpecsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    backgroundColor: "rgba(39, 39, 42, 0.5)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
+  },
+  skeletonSpecItem: {
+    alignItems: "center",
   },
 });

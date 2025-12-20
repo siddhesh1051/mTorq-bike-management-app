@@ -21,6 +21,10 @@ class BikeService:
         # Add registration only if provided
         if bike_data.registration:
             bike_doc["registration"] = bike_data.registration
+        
+        # Add image_url only if provided
+        if bike_data.image_url:
+            bike_doc["image_url"] = bike_data.image_url
 
         await db.bikes.insert_one(bike_doc)
         return bike_doc
@@ -44,13 +48,24 @@ class BikeService:
             raise HTTPException(status_code=404, detail="Bike not found")
 
         update_data = {}
+        unset_data = {}
+        
         for key, value in bike_data.model_dump().items():
             if value is not None:
-                update_data[key] = value
+                # Handle empty string for image_url (to remove image)
+                if key == "image_url" and value == "":
+                    unset_data[key] = ""
+                else:
+                    update_data[key] = value
 
         if update_data:
             await db.bikes.update_one({"id": bike_id}, {"$set": update_data})
             bike.update(update_data)
+        
+        if unset_data:
+            await db.bikes.update_one({"id": bike_id}, {"$unset": unset_data})
+            for key in unset_data:
+                bike.pop(key, None)
 
         return bike
 
