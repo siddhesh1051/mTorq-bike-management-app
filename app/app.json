@@ -4,7 +4,7 @@
     "slug": "mtorq",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/mTorq.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/mTorq-name.png",
