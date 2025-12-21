@@ -6,3 +6,4 @@ export { BikeDetailScreen } from "./BikeDetailScreen";
 export { ExpensesScreen } from "./ExpensesScreen";
 export { AddExpenseScreen } from "./AddExpenseScreen";
 export { SettingsScreen } from "./SettingsScreen";
+export { VaultScreen } from "./VaultScreen";
