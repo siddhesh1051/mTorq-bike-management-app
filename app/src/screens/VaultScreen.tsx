@@ -10,7 +10,6 @@ import {
   RefreshControl,
   ActivityIndicator,
   Linking,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -114,15 +113,19 @@ const DocumentItem: React.FC<DocumentItemProps> = ({
 
   return (
     <View style={styles.documentItem}>
-      <View style={styles.documentHeader}>
+      {/* Top Row - Icon and Info */}
+      <View style={styles.documentTopRow}>
         <View
           style={[styles.documentIcon, { backgroundColor: config.bgColor }]}
         >
-          <IconComponent color={config.color} size={24} />
+          <IconComponent color={config.color} size={28} />
         </View>
         <View style={styles.documentInfo}>
-          <Text style={styles.documentName} numberOfLines={1}>
+          <Text style={styles.documentName} numberOfLines={2}>
             {displayName}
+          </Text>
+          <Text style={styles.documentFileName} numberOfLines={1}>
+            {document.file_name}
           </Text>
           <Text style={styles.documentMeta}>
             {formatFileSize(document.file_size)} •{" "}
@@ -130,15 +133,30 @@ const DocumentItem: React.FC<DocumentItemProps> = ({
           </Text>
         </View>
       </View>
-      <View style={styles.documentActions}>
-        <TouchableOpacity style={styles.actionButton} onPress={onView}>
-          <Eye color="#5eead4" size={18} />
+
+      {/* Bottom Row - Actions */}
+      <View style={styles.documentActionsRow}>
+        <TouchableOpacity style={styles.actionButtonLarge} onPress={onView}>
+          <Eye color="#5eead4" size={16} />
+          <Text style={styles.actionButtonText}>View</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={onDownload}>
-          <Download color="#3b82f6" size={18} />
+        <TouchableOpacity
+          style={[styles.actionButtonLarge, styles.actionButtonPrimary]}
+          onPress={onDownload}
+        >
+          <Download color="#3b82f6" size={16} />
+          <Text
+            style={[styles.actionButtonText, { color: "#3b82f6" }]}
+            numberOfLines={1}
+          >
+            Download
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
-          <Trash2 color="#f87171" size={18} />
+        <TouchableOpacity
+          style={[styles.actionButtonLarge, styles.actionButtonDanger]}
+          onPress={onDelete}
+        >
+          <Trash2 color="#f87171" size={16} />
         </TouchableOpacity>
       </View>
     </View>
@@ -148,22 +166,28 @@ const DocumentItem: React.FC<DocumentItemProps> = ({
 // Skeleton for loading state
 const DocumentSkeleton = () => (
   <View style={styles.documentItem}>
-    <View style={styles.documentHeader}>
-      <Skeleton width={48} height={48} borderRadius={12} />
+    <View style={styles.documentTopRow}>
+      <Skeleton width={56} height={56} borderRadius={14} />
       <View style={styles.documentInfo}>
-        <Skeleton width={140} height={18} borderRadius={6} />
+        <Skeleton width={160} height={20} borderRadius={6} />
+        <Skeleton
+          width={120}
+          height={14}
+          borderRadius={4}
+          style={{ marginTop: 6 }}
+        />
         <Skeleton
           width={100}
-          height={14}
+          height={12}
           borderRadius={4}
           style={{ marginTop: 6 }}
         />
       </View>
     </View>
-    <View style={styles.documentActions}>
-      <Skeleton width={36} height={36} borderRadius={8} />
-      <Skeleton width={36} height={36} borderRadius={8} />
-      <Skeleton width={36} height={36} borderRadius={8} />
+    <View style={styles.documentActionsRow}>
+      <Skeleton style={{ flex: 1 }} height={40} borderRadius={10} />
+      <Skeleton style={{ flex: 1 }} height={40} borderRadius={10} />
+      <Skeleton style={{ flex: 1 }} height={40} borderRadius={10} />
     </View>
   </View>
 );
@@ -594,7 +618,7 @@ export const VaultScreen = () => {
 
       {/* PDF Viewer Modal */}
       {viewerVisible && viewingDocument && (
-        <View style={styles.viewerContainer}>
+        <SafeAreaView style={styles.viewerContainer}>
           <View style={styles.viewerHeader}>
             <TouchableOpacity
               style={styles.viewerCloseButton}
@@ -623,9 +647,15 @@ export const VaultScreen = () => {
             </TouchableOpacity>
           </View>
           <WebView
-            source={{ uri: viewingDocument.file_url }}
+            source={{
+              uri: `https://docs.google.com/viewer?url=${encodeURIComponent(
+                viewingDocument.file_url
+              )}&embedded=true`,
+            }}
             style={styles.webView}
             startInLoadingState
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
             renderLoading={() => (
               <View style={styles.webViewLoading}>
                 <ActivityIndicator color="#5eead4" size="large" />
@@ -633,7 +663,7 @@ export const VaultScreen = () => {
               </View>
             )}
           />
-        </View>
+        </SafeAreaView>
       )}
 
       {/* Delete Confirmation Dialog */}
@@ -745,46 +775,76 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   documentItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     backgroundColor: "rgba(255,255,255,0.04)",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(255,255,255,0.08)",
   },
-  documentHeader: {
+  documentTopRow: {
     flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
+    alignItems: "flex-start",
   },
   documentIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 56,
+    height: 56,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
   documentInfo: {
     flex: 1,
-    marginLeft: 12,
-    marginRight: 8,
+    marginLeft: 14,
   },
   documentName: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     color: "#ffffff",
+    lineHeight: 22,
+  },
+  documentFileName: {
+    fontSize: 13,
+    color: "#a1a1aa",
+    marginTop: 4,
   },
   documentMeta: {
     fontSize: 12,
     color: "#71717a",
-    marginTop: 4,
+    marginTop: 6,
   },
-  documentActions: {
+  documentActionsRow: {
     flexDirection: "row",
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
+    gap: 10,
+  },
+  actionButtonLarge: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  actionButtonPrimary: {
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+  },
+  actionButtonDanger: {
+    flex: 0,
+    width: 44,
+    paddingHorizontal: 0,
+    backgroundColor: "rgba(248, 113, 113, 0.1)",
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#5eead4",
   },
   actionButton: {
     width: 36,
@@ -900,8 +960,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: Platform.OS === "ios" ? 50 : 12,
+    paddingVertical: 14,
     backgroundColor: "#18181b",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.1)",
