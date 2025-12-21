@@ -181,20 +181,41 @@ const calculateMileageForExpense = (
     };
   }
 
-  // Find the previous full tank fuel expense (sorted by date, oldest first for this calculation)
-  const sortedExpenses = [...allExpenses]
+  // Find the previous full tank expense (most recent full tank before this one)
+  const currentExpenseTime = new Date(expense.date).getTime();
+  const currentExpenseCreatedTime = new Date(expense.created_at).getTime();
+  
+  // Get all full tank expenses with odometer readings (excluding current expense)
+  const previousFullTankExpenses = [...allExpenses]
     .filter(
       (e) =>
         e.type === "Fuel" &&
         e.is_full_tank &&
         e.odometer &&
-        new Date(e.date).getTime() < new Date(expense.date).getTime()
+        e.litres &&
+        e.id !== expense.id // Exclude current expense
     )
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .filter((e) => {
+      // Previous expense must be before current expense
+      const eDate = new Date(e.date).getTime();
+      const eCreated = new Date(e.created_at).getTime();
+      return (
+        eDate < currentExpenseTime ||
+        (eDate === currentExpenseTime && eCreated < currentExpenseCreatedTime)
+      );
+    })
+    .sort((a, b) => {
+      // Get the most recent one before current expense
+      const aDate = new Date(a.date).getTime();
+      const bDate = new Date(b.date).getTime();
+      const dateDiff = bDate - aDate;
+      if (dateDiff !== 0) return dateDiff;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
-  const previousFullTank = sortedExpenses[0];
+  const previousExpense = previousFullTankExpenses[0];
 
-  if (!previousFullTank) {
+  if (!previousExpense) {
     return {
       mileage: null,
       distance: null,
@@ -205,15 +226,27 @@ const calculateMileageForExpense = (
     };
   }
 
-  // Calculate mileage: (Current Odometer - Previous Odometer) / Litres
-  const distance = expense.odometer - (previousFullTank.odometer || 0);
+  // Calculate mileage: (Current Odometer - Previous Odometer) / Litres of Current Expense
+  const distance = expense.odometer - (previousExpense.odometer || 0);
+  
+  if (distance <= 0) {
+    return {
+      mileage: null,
+      distance: null,
+      litres: expense.litres,
+      previousOdometer: previousExpense.odometer || null,
+      canCalculate: false,
+      errorMessage: "Invalid odometer reading (current ≤ previous)",
+    };
+  }
+  
   const mileage = distance / expense.litres;
 
   return {
     mileage: Math.round(mileage * 10) / 10,
     distance,
     litres: expense.litres,
-    previousOdometer: previousFullTank.odometer || null,
+    previousOdometer: previousExpense.odometer || null,
     canCalculate: true,
     errorMessage: null,
   };
@@ -228,50 +261,63 @@ interface OverallMileageStats {
   fullTankCount: number;
 }
 
+// Helper to get highest odometer reading from all expenses
+const getLatestOdometer = (expenses: Expense[]): number | null => {
+  const withOdometer = expenses.filter((e) => e.odometer);
+  if (withOdometer.length === 0) return null;
+  // Return the highest odometer reading
+  return Math.max(...withOdometer.map((e) => e.odometer || 0));
+};
+
 const calculateOverallMileage = (expenses: Expense[]): OverallMileageStats => {
-  // Filter fuel expenses with full tank and odometer
-  const fullTankExpenses = expenses
-    .filter((e) => e.type === "Fuel" && e.is_full_tank && e.odometer && e.litres)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Filter full tank expenses with odometer and litres
+  const fullTankExpenses = expenses.filter(
+    (e) => e.type === "Fuel" && e.is_full_tank && e.odometer && e.litres
+  );
 
   if (fullTankExpenses.length < 2) {
-    // Need at least 2 full tanks to calculate mileage
-    const latestOdometer = expenses
-      .filter((e) => e.odometer)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer;
-
+    // Need at least 2 full tank expenses to calculate mileage
     return {
       averageMileage: null,
-      latestOdometer: latestOdometer || null,
+      latestOdometer: getLatestOdometer(expenses),
       totalDistance: null,
       totalFuel: null,
       fullTankCount: fullTankExpenses.length,
     };
   }
 
-  // Calculate total distance and total fuel from first to last full tank
-  const firstFullTank = fullTankExpenses[0];
-  const lastFullTank = fullTankExpenses[fullTankExpenses.length - 1];
+  // Sort full tank expenses by date and created_at
+  const sortedFullTanks = [...fullTankExpenses].sort((a, b) => {
+    const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+    if (dateDiff !== 0) return dateDiff;
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  });
 
-  const totalDistance =
-    (lastFullTank.odometer || 0) - (firstFullTank.odometer || 0);
+  // Get first full tank (earliest)
+  const firstFullTank = sortedFullTanks[0];
+  // Get latest/recent full tank (most recent)
+  const latestFullTank = sortedFullTanks[sortedFullTanks.length - 1];
 
-  // Sum all litres from 2nd full tank onwards (since we calculate from the previous tank)
-  const totalFuel = fullTankExpenses
-    .slice(1)
+  // Calculate total distance = Latest Full Tank Odometer - First Full Tank Odometer
+  const totalDistance = (latestFullTank.odometer || 0) - (firstFullTank.odometer || 0);
+
+  // Get all fuel expenses (not just full tank) for calculating total fuel consumed
+  const allFuelExpenses = expenses.filter(
+    (e) => e.type === "Fuel" && e.litres
+  );
+
+  // Sum all fuel expenses litres EXCEPT the first full tank's litres
+  const totalFuel = allFuelExpenses
+    .filter((e) => e.id !== firstFullTank.id) // Exclude first full tank
     .reduce((sum, e) => sum + (e.litres || 0), 0);
 
+  // Average mileage = Total Distance / Total Petrol Consumed (excluding first full tank)
   const averageMileage =
     totalFuel > 0 ? Math.round((totalDistance / totalFuel) * 10) / 10 : null;
 
-  // Get latest odometer from any expense
-  const latestOdometer = expenses
-    .filter((e) => e.odometer)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer;
-
   return {
     averageMileage,
-    latestOdometer: latestOdometer || null,
+    latestOdometer: getLatestOdometer(expenses),
     totalDistance,
     totalFuel,
     fullTankCount: fullTankExpenses.length,

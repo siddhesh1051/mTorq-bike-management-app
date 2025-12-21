@@ -5,12 +5,17 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Bike } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Card, CardHeader, CardContent, Input, Button } from "../components";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+
+const mTorqLogo = require("../../assets/mTorq.png");
 
 export const AuthScreen = () => {
   const { login, signup } = useAuth();
@@ -65,97 +70,207 @@ export const AuthScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+    <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={[
+          "rgba(9, 9, 11, 1)",
+          "rgba(9, 9, 11, 0.95)",
+          "rgba(9, 9, 11, 1)",
+        ]}
+        style={styles.gradient}
       >
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            padding: 16,
-          }}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
         >
-          <Card style={{ marginBottom: 16 }}>
-            <CardHeader>
-              <View className="items-center mb-4">
-                <View className="w-16 h-16 rounded-full bg-primary/20 items-center justify-center mb-4">
-                  <Bike color="#ccfbf1" size={32} />
-                </View>
-                <Text className="text-white text-3xl font-bold text-center">
-                  {isLogin ? "Welcome Back" : "Create Account"}
-                </Text>
-                <Text className="text-zinc-400 text-center mt-2">
-                  {isLogin
-                    ? "Sign in to track your bike expenses"
-                    : "Start tracking your bike expenses today"}
-                </Text>
-              </View>
-            </CardHeader>
-
-            <CardContent>
-              {!isLogin && (
-                <Input
-                  label="Name"
-                  placeholder="Enter your name"
-                  value={formData.name}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, name: text })
-                  }
-                  autoCapitalize="words"
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Logo Section */}
+            <View style={styles.logoSection}>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={mTorqLogo}
+                  style={styles.logo}
+                  resizeMode="contain"
                 />
-              )}
-
-              <Input
-                label="Email"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, email: text })
-                }
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-
-              <Input
-                label="Password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, password: text })
-                }
-                secureTextEntry
-                autoCapitalize="none"
-              />
-
-              <Button
-                title={
-                  loading ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"
-                }
-                onPress={handleSubmit}
-                loading={loading}
-                style={{ marginTop: 8 }}
-              />
-
-              <View className="mt-6 items-center">
-                <Text
-                  className="text-zinc-400 text-sm"
-                  onPress={() => setIsLogin(!isLogin)}
-                >
-                  {isLogin
-                    ? "Don't have an account? "
-                    : "Already have an account? "}
-                  <Text className="text-primary">
-                    {isLogin ? "Sign up" : "Sign in"}
-                  </Text>
-                </Text>
               </View>
-            </CardContent>
-          </Card>
-        </ScrollView>
-      </KeyboardAvoidingView>
+              <Text style={styles.welcomeText}>
+                {isLogin ? "Welcome Back" : "Get Started"}
+              </Text>
+              <Text style={styles.subtitleText}>
+                {isLogin
+                  ? "Sign in to continue tracking your bike expenses"
+                  : "Create your account to start tracking"}
+              </Text>
+            </View>
+
+            {/* Form Card */}
+            <View style={styles.cardContainer}>
+              <Card style={styles.card}>
+                <CardContent>
+                  {!isLogin && (
+                    <Input
+                      label="Name"
+                      placeholder="Enter your full name"
+                      value={formData.name}
+                      onChangeText={(text) =>
+                        setFormData({ ...formData, name: text })
+                      }
+                      autoCapitalize="words"
+                    />
+                  )}
+
+                  <Input
+                    label="Email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, email: text })
+                    }
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+
+                  <Input
+                    label="Password"
+                    placeholder="Enter your password"
+                    value={formData.password}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, password: text })
+                    }
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+
+                  <Button
+                    title={
+                      loading
+                        ? "Please wait..."
+                        : isLogin
+                        ? "Sign In"
+                        : "Create Account"
+                    }
+                    onPress={handleSubmit}
+                    loading={loading}
+                    style={styles.submitButton}
+                  />
+
+                  {/* Toggle Login/Signup */}
+                  <View style={styles.toggleContainer}>
+                    <Text style={styles.toggleText}>
+                      {isLogin
+                        ? "Don't have an account? "
+                        : "Already have an account? "}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setIsLogin(!isLogin);
+                        setFormData({ email: "", password: "", name: "" });
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.toggleLink}>
+                        {isLogin ? "Sign up" : "Sign in"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </CardContent>
+              </Card>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#09090b",
+  },
+  gradient: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoSection: {
+    alignItems: "center",
+    marginBottom: 40,
+    width: "100%",
+    alignSelf: "center",
+  },
+  logoContainer: {
+    width: 200,
+    height: 80,
+    marginBottom: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logo: {
+    width: "100%",
+    height: "100%",
+  },
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#ffffff",
+    textAlign: "center",
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  subtitleText: {
+    fontSize: 15,
+    color: "#71717a",
+    textAlign: "center",
+    paddingHorizontal: 20,
+    lineHeight: 22,
+  },
+  cardContainer: {
+    width: "100%",
+    maxWidth: 400,
+    alignSelf: "center",
+  },
+  card: {
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  submitButton: {
+    marginTop: 8,
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
+  },
+  toggleText: {
+    fontSize: 14,
+    color: "#71717a",
+  },
+  toggleLink: {
+    fontSize: 14,
+    color: "#5eead4",
+    fontWeight: "600",
+  },
+});

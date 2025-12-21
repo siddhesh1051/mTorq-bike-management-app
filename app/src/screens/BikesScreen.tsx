@@ -42,14 +42,17 @@ interface BikeStats {
 }
 
 const calculateBikeStats = (expenses: Expense[]): BikeStats => {
-  // Filter fuel expenses with full tank and odometer
-  const fullTankExpenses = expenses
-    .filter((e) => e.type === "Fuel" && e.is_full_tank && e.odometer && e.litres)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Get highest odometer reading from all expenses
+  const expensesWithOdometer = expenses.filter((e) => e.odometer);
+  const latestOdometer =
+    expensesWithOdometer.length > 0
+      ? Math.max(...expensesWithOdometer.map((e) => e.odometer || 0))
+      : null;
 
-  const latestOdometer = expenses
-    .filter((e) => e.odometer)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer || null;
+  // Filter full tank expenses with odometer and litres
+  const fullTankExpenses = expenses.filter(
+    (e) => e.type === "Fuel" && e.is_full_tank && e.odometer && e.litres
+  );
 
   if (fullTankExpenses.length < 2) {
     return {
@@ -58,20 +61,35 @@ const calculateBikeStats = (expenses: Expense[]): BikeStats => {
     };
   }
 
-  // Calculate total distance and total fuel from first to last full tank
-  const firstFullTank = fullTankExpenses[0];
-  const lastFullTank = fullTankExpenses[fullTankExpenses.length - 1];
+  // Sort full tank expenses by date and created_at
+  const sortedFullTanks = [...fullTankExpenses].sort((a, b) => {
+    const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+    if (dateDiff !== 0) return dateDiff;
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  });
 
+  // Get first full tank (earliest)
+  const firstFullTank = sortedFullTanks[0];
+  // Get latest/recent full tank (most recent)
+  const latestFullTank = sortedFullTanks[sortedFullTanks.length - 1];
+
+  // Calculate total distance = Latest Full Tank Odometer - First Full Tank Odometer
   const totalDistance =
-    (lastFullTank.odometer || 0) - (firstFullTank.odometer || 0);
+    (latestFullTank.odometer || 0) - (firstFullTank.odometer || 0);
 
-  // Sum all litres from 2nd full tank onwards
-  const totalFuel = fullTankExpenses
-    .slice(1)
+  // Get all fuel expenses (not just full tank) for calculating total fuel consumed
+  const allFuelExpenses = expenses.filter((e) => e.type === "Fuel" && e.litres);
+
+  // Sum all fuel expenses litres EXCEPT the first full tank's litres
+  const totalPetrolConsumed = allFuelExpenses
+    .filter((e) => e.id !== firstFullTank.id) // Exclude first full tank
     .reduce((sum, e) => sum + (e.litres || 0), 0);
 
+  // Average mileage = Total Distance / Total Petrol Consumed (excluding first full tank)
   const averageMileage =
-    totalFuel > 0 ? Math.round((totalDistance / totalFuel) * 10) / 10 : null;
+    totalPetrolConsumed > 0
+      ? Math.round((totalDistance / totalPetrolConsumed) * 10) / 10
+      : null;
 
   return {
     averageMileage,
@@ -302,20 +320,29 @@ const BikeCard: React.FC<BikeCardProps> = ({ bike, stats, onPress }) => {
         style={styles.specsRow}
       >
         <View style={styles.specItem}>
-          <TrendingUp 
-            color={stats.averageMileage !== null ? "#22c55e" : "#ffffff60"} 
-            size={20} 
-            strokeWidth={1.5} 
+          <TrendingUp
+            color={stats.averageMileage !== null ? "#22c55e" : "#ffffff60"}
+            size={20}
+            strokeWidth={1.5}
           />
-          <Text style={[styles.specText, { color: stats.averageMileage !== null ? "#22c55e" : "#ffffff90" }]}>
-            {stats.averageMileage !== null ? `${stats.averageMileage} km/L` : "—"}
+          <Text
+            style={[
+              styles.specText,
+              {
+                color: stats.averageMileage !== null ? "#22c55e" : "#ffffff90",
+              },
+            ]}
+          >
+            {stats.averageMileage !== null
+              ? `${stats.averageMileage} km/L`
+              : "—"}
           </Text>
         </View>
         <View style={styles.specItem}>
           <Gauge color="#ffffff80" size={20} strokeWidth={1.5} />
           <Text style={styles.specText}>
-            {stats.latestOdometer 
-              ? `${stats.latestOdometer.toLocaleString()} km` 
+            {stats.latestOdometer
+              ? `${stats.latestOdometer.toLocaleString()} km`
               : "—"}
           </Text>
         </View>
@@ -356,7 +383,7 @@ export const BikesScreen = () => {
   // Fetch expenses for all bikes and calculate stats
   const fetchBikeStats = async (bikesList: Bike[]) => {
     const statsMap: Record<string, BikeStats> = {};
-    
+
     for (const bike of bikesList) {
       try {
         const expenses = await apiService.getExpenses({ bike_id: bike.id });
@@ -366,7 +393,7 @@ export const BikesScreen = () => {
         statsMap[bike.id] = { averageMileage: null, latestOdometer: null };
       }
     }
-    
+
     setBikeStats(statsMap);
   };
 
@@ -611,11 +638,16 @@ export const BikesScreen = () => {
             </View>
           ) : (
             bikes.map((bike, index) => (
-              <BikeCard 
-                key={bike.id} 
-                bike={bike} 
-                stats={bikeStats[bike.id] || { averageMileage: null, latestOdometer: null }}
-                onPress={handleCardPress} 
+              <BikeCard
+                key={bike.id}
+                bike={bike}
+                stats={
+                  bikeStats[bike.id] || {
+                    averageMileage: null,
+                    latestOdometer: null,
+                  }
+                }
+                onPress={handleCardPress}
               />
             ))
           )}

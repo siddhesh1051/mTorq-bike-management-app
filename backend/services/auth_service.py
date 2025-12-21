@@ -5,7 +5,7 @@ import jwt
 from fastapi import HTTPException
 from config.database import db
 from config import JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRY_DAYS
-from models import UserSignup, UserLogin
+from models import UserSignup, UserLogin, UserUpdateName, UserUpdatePassword
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -79,3 +79,39 @@ class AuthService:
                 "created_at": user["created_at"]
             }
         }
+
+    @staticmethod
+    async def update_name(user_id: str, name_data: UserUpdateName) -> dict:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"name": name_data.name}}
+        )
+
+        updated_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        return {
+            "email": updated_user["email"],
+            "name": updated_user["name"],
+            "created_at": updated_user["created_at"]
+        }
+
+    @staticmethod
+    async def update_password(user_id: str, password_data: UserUpdatePassword) -> dict:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Verify current password
+        if not AuthService.verify_password(password_data.current_password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+        # Update password
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"password_hash": AuthService.hash_password(password_data.new_password)}}
+        )
+
+        return {"message": "Password updated successfully"}

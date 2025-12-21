@@ -23,3 +23,12 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+
+
+class UserUpdateName(BaseModel):
+    name: str
+
+
+class UserUpdatePassword(BaseModel):
+    current_password: str
+    new_password: str
