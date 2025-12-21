@@ -67,6 +67,10 @@ export interface Expense {
   date: string;
   odometer?: number;
   notes?: string;
+  // Fuel-specific fields
+  litres?: number;
+  is_full_tank?: boolean;
+  price_per_litre?: number;
   created_at: string;
 }
 
@@ -77,6 +81,10 @@ export interface ExpenseCreate {
   date: string;
   odometer?: number;
   notes?: string;
+  // Fuel-specific fields (optional, only used for Fuel type)
+  litres?: number;
+  is_full_tank?: boolean;
+  price_per_litre?: number;
 }
 
 export interface DashboardStats {

@@ -31,6 +31,10 @@ class ExpenseCreate(BaseModel):
     date: str  # ISO format date
     odometer: Optional[int] = None
     notes: Optional[str] = None
+    # Fuel-specific fields (optional, only used for Fuel type)
+    litres: Optional[float] = None
+    is_full_tank: Optional[bool] = None
+    price_per_litre: Optional[float] = None
 
 
 class ExpenseResponse(BaseModel):
@@ -43,6 +47,10 @@ class ExpenseResponse(BaseModel):
     date: str
     odometer: Optional[int] = None
     notes: Optional[str] = None
+    # Fuel-specific fields
+    litres: Optional[float] = None
+    is_full_tank: Optional[bool] = None
+    price_per_litre: Optional[float] = None
     created_at: str
 
 
@@ -53,6 +61,10 @@ class ExpenseUpdate(BaseModel):
     date: Optional[str] = None
     odometer: Optional[int] = None
     notes: Optional[str] = None
+    # Fuel-specific fields
+    litres: Optional[float] = None
+    is_full_tank: Optional[bool] = None
+    price_per_litre: Optional[float] = None
 
 
 class DashboardStats(BaseModel):

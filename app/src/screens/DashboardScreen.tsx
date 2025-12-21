@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import { Card, CardHeader, CardContent, Skeleton } from "../components";
 import { DashboardStats } from "../types";
 import apiService from "../services/api";
 import { format } from "date-fns";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 
 // Skeleton for expense item
 const ExpenseItemSkeleton = () => (
@@ -79,9 +79,12 @@ export const DashboardScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  // Refresh data when screen comes into focus (after add/edit/delete)
+  useFocusEffect(
+    useCallback(() => {
+      fetchStats();
+    }, [])
+  );
 
   const fetchStats = async () => {
     try {

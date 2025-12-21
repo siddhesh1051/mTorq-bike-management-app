@@ -23,6 +23,10 @@ class ExpenseService:
             "date": expense_data.date,
             "odometer": expense_data.odometer,
             "notes": expense_data.notes,
+            # Fuel-specific fields
+            "litres": expense_data.litres,
+            "is_full_tank": expense_data.is_full_tank,
+            "price_per_litre": expense_data.price_per_litre,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
 

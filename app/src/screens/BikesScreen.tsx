@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import {
   Camera,
   ImageIcon,
   X,
+  TrendingUp,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -28,15 +29,54 @@ import {
   ConfirmDialog,
   Skeleton,
 } from "../components";
-import { Bike, BikeCreate, BrandModelsMap } from "../types";
+import { Bike, BikeCreate, BrandModelsMap, Expense } from "../types";
 import apiService from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 
-// Hardcoded bike specs for the modern card design
-const bikeSpecs: Record<string, { mileage: string }> = {
-  default: { mileage: "40 kmpl" },
+// Calculate overall mileage for a bike from all full tank expenses
+interface BikeStats {
+  averageMileage: number | null;
+  latestOdometer: number | null;
+}
+
+const calculateBikeStats = (expenses: Expense[]): BikeStats => {
+  // Filter fuel expenses with full tank and odometer
+  const fullTankExpenses = expenses
+    .filter((e) => e.type === "Fuel" && e.is_full_tank && e.odometer && e.litres)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const latestOdometer = expenses
+    .filter((e) => e.odometer)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer || null;
+
+  if (fullTankExpenses.length < 2) {
+    return {
+      averageMileage: null,
+      latestOdometer,
+    };
+  }
+
+  // Calculate total distance and total fuel from first to last full tank
+  const firstFullTank = fullTankExpenses[0];
+  const lastFullTank = fullTankExpenses[fullTankExpenses.length - 1];
+
+  const totalDistance =
+    (lastFullTank.odometer || 0) - (firstFullTank.odometer || 0);
+
+  // Sum all litres from 2nd full tank onwards
+  const totalFuel = fullTankExpenses
+    .slice(1)
+    .reduce((sum, e) => sum + (e.litres || 0), 0);
+
+  const averageMileage =
+    totalFuel > 0 ? Math.round((totalDistance / totalFuel) * 10) / 10 : null;
+
+  return {
+    averageMileage,
+    latestOdometer,
+  };
 };
 
 // Format registration number: AA 00 AA 0000 or AA 00 A 0000
@@ -205,12 +245,11 @@ const BikesScreenSkeleton = () => (
 
 interface BikeCardProps {
   bike: Bike;
+  stats: BikeStats;
   onPress: (bike: Bike) => void;
 }
 
-const BikeCard: React.FC<BikeCardProps> = ({ bike, onPress }) => {
-  const specs = bikeSpecs[bike.model] || bikeSpecs.default;
-
+const BikeCard: React.FC<BikeCardProps> = ({ bike, stats, onPress }) => {
   return (
     <TouchableOpacity
       style={styles.cardContainer}
@@ -263,12 +302,22 @@ const BikeCard: React.FC<BikeCardProps> = ({ bike, onPress }) => {
         style={styles.specsRow}
       >
         <View style={styles.specItem}>
-          <Fuel color="#ffffff80" size={20} strokeWidth={1.5} />
-          <Text style={styles.specText}>{specs.mileage}</Text>
+          <TrendingUp 
+            color={stats.averageMileage !== null ? "#22c55e" : "#ffffff60"} 
+            size={20} 
+            strokeWidth={1.5} 
+          />
+          <Text style={[styles.specText, { color: stats.averageMileage !== null ? "#22c55e" : "#ffffff90" }]}>
+            {stats.averageMileage !== null ? `${stats.averageMileage} km/L` : "—"}
+          </Text>
         </View>
         <View style={styles.specItem}>
           <Gauge color="#ffffff80" size={20} strokeWidth={1.5} />
-          <Text style={styles.specText}>0 km</Text>
+          <Text style={styles.specText}>
+            {stats.latestOdometer 
+              ? `${stats.latestOdometer.toLocaleString()} km` 
+              : "—"}
+          </Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -279,6 +328,7 @@ export const BikesScreen = () => {
   const navigation = useNavigation<any>();
   const { showSuccess, showError } = useToast();
   const [bikes, setBikes] = useState<Bike[]>([]);
+  const [bikeStats, setBikeStats] = useState<Record<string, BikeStats>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -295,10 +345,30 @@ export const BikesScreen = () => {
   });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchBikes();
-    fetchBrandsModels();
-  }, []);
+  // Refresh data when screen comes into focus (after add/edit/delete)
+  useFocusEffect(
+    useCallback(() => {
+      fetchBikes();
+      fetchBrandsModels();
+    }, [])
+  );
+
+  // Fetch expenses for all bikes and calculate stats
+  const fetchBikeStats = async (bikesList: Bike[]) => {
+    const statsMap: Record<string, BikeStats> = {};
+    
+    for (const bike of bikesList) {
+      try {
+        const expenses = await apiService.getExpenses({ bike_id: bike.id });
+        statsMap[bike.id] = calculateBikeStats(expenses);
+      } catch (error) {
+        console.error(`Failed to fetch expenses for bike ${bike.id}:`, error);
+        statsMap[bike.id] = { averageMileage: null, latestOdometer: null };
+      }
+    }
+    
+    setBikeStats(statsMap);
+  };
 
   const fetchBrandsModels = async () => {
     try {
@@ -313,6 +383,8 @@ export const BikesScreen = () => {
     try {
       const data = await apiService.getBikes();
       setBikes(data);
+      // Fetch stats for all bikes
+      fetchBikeStats(data);
     } catch (error: any) {
       console.error("Failed to load bikes:", error);
       const errorMessage =
@@ -539,7 +611,12 @@ export const BikesScreen = () => {
             </View>
           ) : (
             bikes.map((bike, index) => (
-              <BikeCard key={bike.id} bike={bike} onPress={handleCardPress} />
+              <BikeCard 
+                key={bike.id} 
+                bike={bike} 
+                stats={bikeStats[bike.id] || { averageMileage: null, latestOdometer: null }}
+                onPress={handleCardPress} 
+              />
             ))
           )}
         </ScrollView>
@@ -784,6 +861,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#ffffff90",
+  },
+  specTextActive: {
+    color: "#22c55e",
   },
   actionRow: {
     flexDirection: "row",

@@ -1,10 +1,11 @@
 import React, { useState, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, PlusCircle } from 'lucide-react-native';
 
 interface PickerOption {
   label: string;
   value: string;
+  isAction?: boolean; // For special action items like "Add New"
 }
 
 interface PickerProps {
@@ -51,26 +52,38 @@ export const Picker = ({
         >
           <View className="w-11/12 max-w-sm bg-zinc-900 rounded-lg border border-white/10 overflow-hidden">
             <ScrollView className="max-h-96">
-              {options.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  className={`p-4 border-b border-white/5 ${
-                    value === option.value ? 'bg-zinc-800' : ''
-                  }`}
-                  onPress={() => {
-                    onValueChange(option.value);
-                    setModalVisible(false);
-                  }}
-                >
-                  <Text
-                    className={`text-base ${
-                      value === option.value ? 'text-primary font-semibold' : 'text-white'
-                    }`}
+              {options.map((option) => {
+                const isActionItem = option.isAction || option.value.startsWith('__');
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    className={`p-4 border-b border-white/5 ${
+                      value === option.value ? 'bg-zinc-800' : ''
+                    } ${isActionItem ? 'bg-teal-500/10 border-t border-teal-500/20' : ''}`}
+                    onPress={() => {
+                      onValueChange(option.value);
+                      setModalVisible(false);
+                    }}
                   >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <View className={isActionItem ? 'flex-row items-center' : ''}>
+                      {isActionItem && (
+                        <PlusCircle color="#5eead4" size={18} style={{ marginRight: 8 }} />
+                      )}
+                      <Text
+                        className={`text-base ${
+                          isActionItem
+                            ? 'text-teal-400 font-semibold'
+                            : value === option.value
+                            ? 'text-primary font-semibold'
+                            : 'text-white'
+                        }`}
+                      >
+                        {isActionItem ? option.label.replace('+ ', '') : option.label}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </TouchableOpacity>

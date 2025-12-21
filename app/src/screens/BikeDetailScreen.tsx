@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -32,9 +32,12 @@ import {
   CreditCard,
   MoreHorizontal,
   Gauge,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { Bike, BikeCreate, BrandModelsMap, Expense } from "../types";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -118,15 +121,176 @@ const groupExpensesByMonth = (expenses: Expense[]) => {
   return sortedKeys.map((key) => ({ month: key, expenses: groups[key] }));
 };
 
+// Calculate mileage between two consecutive full tank fuel expenses
+interface MileageInfo {
+  mileage: number | null;
+  distance: number | null;
+  litres: number | null;
+  previousOdometer: number | null;
+  canCalculate: boolean;
+  errorMessage: string | null;
+}
+
+const calculateMileageForExpense = (
+  expense: Expense,
+  allExpenses: Expense[]
+): MileageInfo => {
+  // Only calculate for fuel expenses with full tank
+  if (expense.type !== "Fuel") {
+    return {
+      mileage: null,
+      distance: null,
+      litres: null,
+      previousOdometer: null,
+      canCalculate: false,
+      errorMessage: null,
+    };
+  }
+
+  // Check if this expense has required data
+  if (!expense.is_full_tank) {
+    return {
+      mileage: null,
+      distance: null,
+      litres: expense.litres || null,
+      previousOdometer: null,
+      canCalculate: false,
+      errorMessage: "Not a full tank - mileage cannot be calculated",
+    };
+  }
+
+  if (!expense.odometer) {
+    return {
+      mileage: null,
+      distance: null,
+      litres: expense.litres || null,
+      previousOdometer: null,
+      canCalculate: false,
+      errorMessage: "Odometer reading missing",
+    };
+  }
+
+  if (!expense.litres) {
+    return {
+      mileage: null,
+      distance: null,
+      litres: null,
+      previousOdometer: null,
+      canCalculate: false,
+      errorMessage: "Litres not recorded",
+    };
+  }
+
+  // Find the previous full tank fuel expense (sorted by date, oldest first for this calculation)
+  const sortedExpenses = [...allExpenses]
+    .filter(
+      (e) =>
+        e.type === "Fuel" &&
+        e.is_full_tank &&
+        e.odometer &&
+        new Date(e.date).getTime() < new Date(expense.date).getTime()
+    )
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const previousFullTank = sortedExpenses[0];
+
+  if (!previousFullTank) {
+    return {
+      mileage: null,
+      distance: null,
+      litres: expense.litres,
+      previousOdometer: null,
+      canCalculate: false,
+      errorMessage: "First full tank - mileage will be calculated on next full tank",
+    };
+  }
+
+  // Calculate mileage: (Current Odometer - Previous Odometer) / Litres
+  const distance = expense.odometer - (previousFullTank.odometer || 0);
+  const mileage = distance / expense.litres;
+
+  return {
+    mileage: Math.round(mileage * 10) / 10,
+    distance,
+    litres: expense.litres,
+    previousOdometer: previousFullTank.odometer || null,
+    canCalculate: true,
+    errorMessage: null,
+  };
+};
+
+// Calculate overall mileage for a bike from all full tank expenses
+interface OverallMileageStats {
+  averageMileage: number | null;
+  latestOdometer: number | null;
+  totalDistance: number | null;
+  totalFuel: number | null;
+  fullTankCount: number;
+}
+
+const calculateOverallMileage = (expenses: Expense[]): OverallMileageStats => {
+  // Filter fuel expenses with full tank and odometer
+  const fullTankExpenses = expenses
+    .filter((e) => e.type === "Fuel" && e.is_full_tank && e.odometer && e.litres)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  if (fullTankExpenses.length < 2) {
+    // Need at least 2 full tanks to calculate mileage
+    const latestOdometer = expenses
+      .filter((e) => e.odometer)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer;
+
+    return {
+      averageMileage: null,
+      latestOdometer: latestOdometer || null,
+      totalDistance: null,
+      totalFuel: null,
+      fullTankCount: fullTankExpenses.length,
+    };
+  }
+
+  // Calculate total distance and total fuel from first to last full tank
+  const firstFullTank = fullTankExpenses[0];
+  const lastFullTank = fullTankExpenses[fullTankExpenses.length - 1];
+
+  const totalDistance =
+    (lastFullTank.odometer || 0) - (firstFullTank.odometer || 0);
+
+  // Sum all litres from 2nd full tank onwards (since we calculate from the previous tank)
+  const totalFuel = fullTankExpenses
+    .slice(1)
+    .reduce((sum, e) => sum + (e.litres || 0), 0);
+
+  const averageMileage =
+    totalFuel > 0 ? Math.round((totalDistance / totalFuel) * 10) / 10 : null;
+
+  // Get latest odometer from any expense
+  const latestOdometer = expenses
+    .filter((e) => e.odometer)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer;
+
+  return {
+    averageMileage,
+    latestOdometer: latestOdometer || null,
+    totalDistance,
+    totalFuel,
+    fullTankCount: fullTankExpenses.length,
+  };
+};
+
 interface TimelineItemProps {
   expense: Expense;
   isLast: boolean;
+  allExpenses: Expense[];
 }
 
-const TimelineItem: React.FC<TimelineItemProps> = ({ expense, isLast }) => {
+const TimelineItem: React.FC<TimelineItemProps> = ({ expense, isLast, allExpenses }) => {
   const config = expenseTypeConfig[expense.type] || expenseTypeConfig.Other;
   const IconComponent = config.icon;
   const date = new Date(expense.date);
+
+  // Calculate mileage for fuel expenses
+  const mileageInfo = calculateMileageForExpense(expense, allExpenses);
 
   return (
     <View style={styles.timelineItem}>
@@ -147,7 +311,15 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ expense, isLast }) => {
       <View style={styles.timelineContent}>
         <View style={styles.timelineHeader}>
           <View style={styles.timelineInfo}>
-            <Text style={styles.timelineTitle}>{expense.type}</Text>
+            <View style={styles.timelineTitleRow}>
+              <Text style={styles.timelineTitle}>{expense.type}</Text>
+              {expense.type === "Fuel" && expense.is_full_tank && (
+                <View style={styles.fullTankBadge}>
+                  <CheckCircle color="#22c55e" size={10} />
+                  <Text style={styles.fullTankText}>Full</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.timelineDate}>{format(date, "EEEE, dd")}</Text>
           </View>
           <Text style={styles.timelineAmount}>
@@ -155,16 +327,49 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ expense, isLast }) => {
           </Text>
         </View>
 
-        {expense.odometer && (
-          <View style={styles.timelineDetails}>
+        <View style={styles.timelineDetails}>
+          {expense.odometer && (
             <View style={styles.timelineDetailRow}>
               <Gauge color="#71717a" size={14} />
               <Text style={styles.timelineDetailText}>
                 {expense.odometer.toLocaleString()} km
               </Text>
             </View>
-          </View>
-        )}
+          )}
+
+          {/* Fuel-specific details */}
+          {expense.type === "Fuel" && expense.litres && (
+            <View style={styles.timelineDetailRow}>
+              <Fuel color="#71717a" size={14} />
+              <Text style={styles.timelineDetailText}>
+                {expense.litres} L {expense.price_per_litre ? `@ ₹${expense.price_per_litre}/L` : ""}
+              </Text>
+            </View>
+          )}
+
+          {/* Mileage display for full tank fuel expenses */}
+          {expense.type === "Fuel" && mileageInfo.canCalculate && mileageInfo.mileage && (
+            <View style={styles.mileageBadge}>
+              <TrendingUp color="#22c55e" size={14} />
+              <Text style={styles.mileageText}>
+                {mileageInfo.mileage} km/L
+              </Text>
+              <Text style={styles.mileageSubtext}>
+                ({mileageInfo.distance?.toLocaleString()} km / {mileageInfo.litres} L)
+              </Text>
+            </View>
+          )}
+
+          {/* Soft error message when mileage can't be calculated */}
+          {expense.type === "Fuel" && mileageInfo.errorMessage && (
+            <View style={styles.mileageWarning}>
+              <AlertCircle color="#fbbf24" size={12} />
+              <Text style={styles.mileageWarningText}>
+                {mileageInfo.errorMessage}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -174,6 +379,7 @@ interface MonthSectionProps {
   month: string;
   expenses: Expense[];
   isFirst: boolean;
+  allExpenses: Expense[];
 }
 
 // Timeline skeleton for loading state
@@ -221,6 +427,7 @@ const MonthSection: React.FC<MonthSectionProps> = ({
   month,
   expenses,
   isFirst,
+  allExpenses,
 }) => {
   return (
     <View style={styles.monthSection}>
@@ -239,6 +446,7 @@ const MonthSection: React.FC<MonthSectionProps> = ({
           key={expense.id}
           expense={expense}
           isLast={index === expenses.length - 1}
+          allExpenses={allExpenses}
         />
       ))}
     </View>
@@ -272,10 +480,13 @@ export const BikeDetailScreen = () => {
     bike.image_url || null
   );
 
-  useEffect(() => {
-    fetchBrandsModels();
-    fetchExpenses();
-  }, []);
+  // Refresh data when screen comes into focus (after add/edit/delete expense)
+  useFocusEffect(
+    useCallback(() => {
+      fetchBrandsModels();
+      fetchExpenses();
+    }, [])
+  );
 
   const fetchExpenses = async () => {
     try {
@@ -437,6 +648,7 @@ export const BikeDetailScreen = () => {
 
   const groupedExpenses = groupExpensesByMonth(expenses);
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const mileageStats = calculateOverallMileage(expenses);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -525,6 +737,40 @@ export const BikeDetailScreen = () => {
               <Text style={styles.statLabel}>Total Spent</Text>
             </View>
           </View>
+
+          {/* Mileage & Odometer Row */}
+          <View style={styles.mileageStatsRow}>
+            <View style={styles.mileageStatItem}>
+              <View style={styles.mileageStatIcon}>
+                <Gauge color="#5eead4" size={18} />
+              </View>
+              <View style={styles.mileageStatTextContainer}>
+                <Text style={styles.mileageStatValue} numberOfLines={1}>
+                  {mileageStats.latestOdometer
+                    ? `${mileageStats.latestOdometer.toLocaleString()} km`
+                    : "—"}
+                </Text>
+                <Text style={styles.mileageStatLabel}>Odometer</Text>
+              </View>
+            </View>
+            <View style={styles.mileageStatItem}>
+              <View style={styles.mileageStatIcon}>
+                <TrendingUp color="#22c55e" size={18} />
+              </View>
+              <View style={styles.mileageStatTextContainer}>
+                <Text style={styles.mileageStatValue}>
+                  {mileageStats.averageMileage
+                    ? `${mileageStats.averageMileage} km/L`
+                    : "—"}
+                </Text>
+                <Text style={styles.mileageStatLabel} numberOfLines={1}>
+                  {mileageStats.fullTankCount < 2
+                    ? `+${2 - mileageStats.fullTankCount} full tank needed`
+                    : "Avg Mileage"}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
         {/* Timeline Section */}
@@ -549,6 +795,7 @@ export const BikeDetailScreen = () => {
                   month={group.month}
                   expenses={group.expenses}
                   isFirst={index === 0}
+                  allExpenses={expenses}
                 />
               ))}
             </View>
@@ -762,6 +1009,49 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.1)",
     marginHorizontal: 16,
   },
+  mileageStatsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+    gap: 12,
+  },
+  mileageStatItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    overflow: "hidden",
+  },
+  mileageStatIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  mileageStatTextContainer: {
+    flex: 1,
+    flexShrink: 1,
+  },
+  mileageStatValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#ffffff",
+    fontVariant: ["tabular-nums"],
+  },
+  mileageStatLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#71717a",
+    marginTop: 2,
+  },
   timelineSection: {
     paddingHorizontal: 20,
     paddingTop: 24,
@@ -862,10 +1152,29 @@ const styles = StyleSheet.create({
   timelineInfo: {
     flex: 1,
   },
+  timelineTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   timelineTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: "#ffffff",
+  },
+  fullTankBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  fullTankText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#22c55e",
   },
   timelineDate: {
     fontSize: 13,
@@ -890,6 +1199,40 @@ const styles = StyleSheet.create({
   timelineDetailText: {
     fontSize: 13,
     color: "#71717a",
+    flex: 1,
+  },
+  mileageBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  mileageText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#22c55e",
+  },
+  mileageSubtext: {
+    fontSize: 11,
+    color: "#71717a",
+  },
+  mileageWarning: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(251, 191, 36, 0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  mileageWarningText: {
+    fontSize: 11,
+    color: "#fbbf24",
     flex: 1,
   },
   imagePickerSection: {

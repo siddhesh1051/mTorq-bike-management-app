@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -132,9 +133,12 @@ export const ExpensesScreen = () => {
     notes: "",
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Refresh data when screen comes into focus (after add/edit/delete)
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const fetchData = async () => {
     try {
