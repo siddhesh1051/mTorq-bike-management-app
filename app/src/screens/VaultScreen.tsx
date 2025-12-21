@@ -28,6 +28,7 @@ import {
   Wrench,
   Award,
   MoreHorizontal,
+  IdCard,
 } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as Sharing from "expo-sharing";
@@ -69,6 +70,7 @@ const documentTypeConfig: Record<
   "RC Certificate": { icon: FileText, color: "#3b82f6", bgColor: "#1e3a5f" },
   "Insurance Policy": { icon: Shield, color: "#22c55e", bgColor: "#14532d" },
   "PUC Certificate": { icon: FileCheck, color: "#84cc16", bgColor: "#365314" },
+  "Driver's License": { icon: IdCard, color: "#ec4899", bgColor: "#5c1a3d" },
   "Service Records": { icon: Wrench, color: "#f97316", bgColor: "#4a2512" },
   "Warranty Documents": { icon: Award, color: "#8b5cf6", bgColor: "#3b2069" },
   Other: { icon: MoreHorizontal, color: "#fbbf24", bgColor: "#451a03" },
@@ -78,6 +80,7 @@ const DOCUMENT_TYPES = [
   "RC Certificate",
   "Insurance Policy",
   "PUC Certificate",
+  "Driver's License",
   "Service Records",
   "Warranty Documents",
   "Other",

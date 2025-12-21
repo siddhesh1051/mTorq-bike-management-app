@@ -110,6 +110,7 @@ export type DocumentType =
   | "RC Certificate"
   | "Insurance Policy"
   | "PUC Certificate"
+  | "Driver's License"
   | "Service Records"
   | "Warranty Documents"
   | "Other";

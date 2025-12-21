@@ -7,6 +7,7 @@ class DocumentType(str, Enum):
     RC_CERTIFICATE = "RC Certificate"
     INSURANCE_POLICY = "Insurance Policy"
     PUC_CERTIFICATE = "PUC Certificate"
+    DRIVERS_LICENSE = "Driver's License"
     SERVICE_RECORDS = "Service Records"
     WARRANTY_DOCUMENTS = "Warranty Documents"
     OTHER = "Other"
