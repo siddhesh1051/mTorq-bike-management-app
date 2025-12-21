@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/mTorq.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#09090b"
       },
       "package": "com.mtorq.app"
