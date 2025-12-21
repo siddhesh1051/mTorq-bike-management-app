@@ -33,10 +33,10 @@ export const API_CONFIG = {
 
 // Cloudinary configuration
 export const CLOUDINARY_CONFIG = {
-  CLOUD_NAME: EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "dmyl8s1al",
+  CLOUD_NAME: EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "",
   UPLOAD_PRESET: EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "mtorq_documents",
   UPLOAD_URL: `https://api.cloudinary.com/v1_1/${
-    EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "dmyl8s1al"
+    EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || ""
   }/raw/upload`,
 };
 
