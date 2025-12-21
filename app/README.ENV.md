@@ -26,6 +26,8 @@ This project uses environment variables to manage configuration across different
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `EXPO_PUBLIC_API_URL` | Backend API base URL | `http://192.168.1.57:8000` |
+| `EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name | `dmyl8s1al` |
+| `EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET` | Cloudinary unsigned upload preset | `mtorq_documents` |
 
 ## Important Notes
 

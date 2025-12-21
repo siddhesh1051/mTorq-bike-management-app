@@ -3,7 +3,7 @@ from starlette.middleware.cors import CORSMiddleware
 import logging
 
 from config.database import close_db_connection
-from routes import auth_router, bike_router, expense_router, master_router
+from routes import auth_router, bike_router, expense_router, master_router, document_router
 
 # Create the main app
 app = FastAPI(
@@ -29,6 +29,7 @@ api_router.include_router(auth_router)
 api_router.include_router(bike_router)
 api_router.include_router(expense_router)
 api_router.include_router(master_router)
+api_router.include_router(document_router)
 
 # Include the main router
 app.include_router(api_router)

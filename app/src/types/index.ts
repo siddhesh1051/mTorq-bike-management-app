@@ -104,3 +104,35 @@ export interface MasterData {
   brandsModels: BrandModelsMap;
   expenseTypes: string[];
 }
+
+// Document types
+export type DocumentType =
+  | "RC Certificate"
+  | "Insurance Policy"
+  | "PUC Certificate"
+  | "Service Records"
+  | "Warranty Documents"
+  | "Other";
+
+export interface Document {
+  id: string;
+  user_id: string;
+  bike_id: string;
+  document_type: DocumentType;
+  custom_name?: string;
+  file_url: string;
+  public_id: string;
+  file_name: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface DocumentCreate {
+  bike_id: string;
+  document_type: string;
+  file_url: string;
+  public_id: string;
+  file_name: string;
+  file_size: number;
+  custom_name?: string;
+}

@@ -12,6 +12,8 @@ import {
   ExpenseCreate,
   DashboardStats,
   BrandModelsMap,
+  Document,
+  DocumentCreate,
 } from "../types";
 
 const API_BASE_URL = `${API_CONFIG.BACKEND_URL}${API_CONFIG.API_PREFIX}`;
@@ -152,6 +154,38 @@ class ApiService {
 
   async getExpenseTypes(): Promise<string[]> {
     const response = await this.client.get<string[]>("/master/expense-types");
+    return response.data;
+  }
+
+  // Document APIs
+  async uploadDocument(document: DocumentCreate): Promise<Document> {
+    const response = await this.client.post<Document>("/documents", document);
+    return response.data;
+  }
+
+  async getDocumentsByBike(bikeId: string): Promise<Document[]> {
+    const response = await this.client.get<Document[]>(`/documents/bike/${bikeId}`);
+    return response.data;
+  }
+
+  async getDocument(documentId: string): Promise<Document> {
+    const response = await this.client.get<Document>(`/documents/${documentId}`);
+    return response.data;
+  }
+
+  async getDocumentDownloadUrl(documentId: string): Promise<string> {
+    const response = await this.client.get<{ download_url: string }>(
+      `/documents/${documentId}/download`
+    );
+    return response.data.download_url;
+  }
+
+  async deleteDocument(documentId: string): Promise<void> {
+    await this.client.delete(`/documents/${documentId}`);
+  }
+
+  async getDocumentTypes(): Promise<string[]> {
+    const response = await this.client.get<string[]>("/documents/types/list");
     return response.data;
   }
 }

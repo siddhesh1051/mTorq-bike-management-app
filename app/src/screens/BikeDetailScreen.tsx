@@ -35,6 +35,7 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
+  FolderOpen,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
@@ -821,6 +822,29 @@ export const BikeDetailScreen = () => {
               </View>
             </View>
           </View>
+
+          {/* Document Vault Button */}
+          <TouchableOpacity
+            style={styles.vaultButton}
+            onPress={() => navigation.navigate("Vault", { bike: currentBike })}
+          >
+            <View style={styles.vaultButtonContent}>
+              <View style={styles.vaultIcon}>
+                <FolderOpen color="#f59e0b" size={22} />
+              </View>
+              <View style={styles.vaultTextContainer}>
+                <Text style={styles.vaultTitle}>Document Vault</Text>
+                <Text style={styles.vaultSubtitle}>
+                  Store RC, Insurance, PUC & more
+                </Text>
+              </View>
+            </View>
+            <ArrowLeft
+              color="#71717a"
+              size={18}
+              style={{ transform: [{ rotate: "180deg" }] }}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Timeline Section */}
@@ -1099,6 +1123,44 @@ const styles = StyleSheet.create({
   mileageStatLabel: {
     fontSize: 11,
     fontWeight: "500",
+    color: "#71717a",
+    marginTop: 2,
+  },
+  vaultButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(245, 158, 11, 0.08)",
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.2)",
+  },
+  vaultButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  vaultIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  vaultTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  vaultTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+  vaultSubtitle: {
+    fontSize: 12,
     color: "#71717a",
     marginTop: 2,
   },

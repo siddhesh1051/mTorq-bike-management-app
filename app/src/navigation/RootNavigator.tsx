@@ -3,7 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
-import { AuthScreen, AddExpenseScreen, BikeDetailScreen } from "../screens";
+import { AuthScreen, AddExpenseScreen, BikeDetailScreen, VaultScreen } from "../screens";
 import { MainNavigator } from "./MainNavigator";
 
 const Stack = createNativeStackNavigator();
@@ -37,6 +37,13 @@ export const RootNavigator = () => {
             <Stack.Screen
               name="BikeDetail"
               component={BikeDetailScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="Vault"
+              component={VaultScreen}
               options={{
                 animation: "slide_from_right",
               }}

@@ -1,4 +1,8 @@
-import { EXPO_PUBLIC_API_URL } from "@env";
+import {
+  EXPO_PUBLIC_API_URL,
+  EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
+} from "@env";
 
 /**
  * API Configuration
@@ -25,6 +29,15 @@ export const API_CONFIG = {
 
   // Request timeout in milliseconds
   TIMEOUT: 300000,
+};
+
+// Cloudinary configuration
+export const CLOUDINARY_CONFIG = {
+  CLOUD_NAME: EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "dmyl8s1al",
+  UPLOAD_PRESET: EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "mtorq_documents",
+  UPLOAD_URL: `https://api.cloudinary.com/v1_1/${
+    EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "dmyl8s1al"
+  }/raw/upload`,
 };
 
 // Helper to get full API URL
