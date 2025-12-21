@@ -104,11 +104,15 @@ const groupExpensesByMonth = (expenses: Expense[]) => {
     groups[monthYear].push(expense);
   });
 
-  // Sort each group by date (newest first)
+  // Sort each group by date (newest first), then by created_at if dates are same
   Object.keys(groups).forEach((key) => {
-    groups[key].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    groups[key].sort((a, b) => {
+      // First sort by date (newest first)
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      // If dates are same, sort by created_at (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
   });
 
   // Sort groups by date (newest first)
