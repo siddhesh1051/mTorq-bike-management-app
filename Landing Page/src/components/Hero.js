@@ -51,9 +51,12 @@ const Hero = () => {
           </div>
 
           {/* Right 3D Animation */}
-          <div className="relative h-[500px] lg:h-[700px]">
+          <div className="relative h-[400px] md:h-[500px] lg:h-[700px]">
             <div className="absolute inset-0 flex items-center justify-center">
-              <div style={{ width: '700px', height: '700px', overflow: 'visible', position: 'relative' }}>
+              <div 
+                className="w-full h-full max-w-[350px] max-h-[350px] md:max-w-[500px] md:max-h-[500px] lg:max-w-[700px] lg:max-h-[700px]"
+                style={{ overflow: 'visible', position: 'relative' }}
+              >
                 <Spline scene="https://prod.spline.design/NbVmy6DPLhY-5Lvg/scene.splinecode" />
               </div>
             </div>
