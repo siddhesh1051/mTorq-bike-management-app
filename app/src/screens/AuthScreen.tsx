@@ -18,10 +18,11 @@ import { useToast } from "../context/ToastContext";
 const mTorqLogo = require("../../assets/mTorq.png");
 
 export const AuthScreen = () => {
-  const { login, signup } = useAuth();
+  const { login, signup, loginWithGoogle } = useAuth();
   const { showError } = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -56,9 +57,9 @@ export const AuthScreen = () => {
       let errorMessage = "An error occurred. Please try again.";
       if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
-      } else if (error.message?.includes("Network Error")) {
+      } else if (error.message?.includes("Network Error") || error.message?.includes("network")) {
         errorMessage =
-          "Cannot connect to server. Make sure backend is running and your device is on the same network.";
+          "Cannot connect to server. Please check your internet connection.";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -66,6 +67,22 @@ export const AuthScreen = () => {
       showError("Authentication Error", errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch (error: any) {
+      console.log("Google Sign-In error:", error);
+      let errorMessage = "Failed to sign in with Google. Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      showError("Google Sign-In Error", errorMessage);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -159,6 +176,28 @@ export const AuthScreen = () => {
                     loading={loading}
                     style={styles.submitButton}
                   />
+
+                  {/* Divider */}
+                  <View style={styles.dividerContainer}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>OR</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+
+                  {/* Google Sign-In Button */}
+                  <TouchableOpacity
+                    style={[styles.googleButton, (googleLoading || loading) && styles.googleButtonDisabled]}
+                    onPress={handleGoogleSignIn}
+                    disabled={googleLoading || loading}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.googleButtonContent}>
+                      <Text style={styles.googleIcon}>G</Text>
+                      <Text style={styles.googleButtonText}>
+                        {googleLoading ? "Signing in..." : "Continue with Google"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
 
                   {/* Toggle Login/Signup */}
                   <View style={styles.toggleContainer}>
@@ -272,5 +311,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#5eead4",
     fontWeight: "600",
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 12,
+    color: "#71717a",
+    fontWeight: "500",
+  },
+  googleButton: {
+    width: "100%",
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleIcon: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#4285F4",
+    marginRight: 12,
+    width: 20,
+    textAlign: "center",
+  },
+  googleButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1f2937",
   },
 });

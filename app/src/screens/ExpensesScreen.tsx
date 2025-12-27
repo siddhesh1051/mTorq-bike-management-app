@@ -9,9 +9,10 @@ import {
   TextInput,
   Platform,
   Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Search, Edit, Trash2, Calendar } from "lucide-react-native";
+import { Search, Edit, Trash2, Calendar, Fuel } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   Card,
@@ -131,7 +132,18 @@ export const ExpensesScreen = () => {
     date: new Date().toISOString().split("T")[0],
     odometer: undefined,
     notes: "",
+    // Fuel-specific fields
+    litres: undefined,
+    is_full_tank: false,
+    price_per_litre: undefined,
   });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  // Raw string values for decimal inputs (to allow typing "5." without it becoming "5")
+  const [pricePerLitreText, setPricePerLitreText] = useState("");
+  const [litresText, setLitresText] = useState("");
+  // Track which fuel field was last edited to determine auto-fill direction
+  const [lastEditedFuelField, setLastEditedFuelField] = useState<"price" | "litres" | null>(null);
 
   // Refresh data when screen comes into focus (after add/edit/delete)
   useFocusEffect(
@@ -166,8 +178,40 @@ export const ExpensesScreen = () => {
     fetchData();
   };
 
+  // Auto-calculate: Amount is always entered first
+  // If user enters Price → calculate Litres = Amount / Price
+  // If user enters Litres → calculate Price = Amount / Litres
+  useEffect(() => {
+    if (formData.type !== "Fuel" || !editModalVisible) return;
+    
+    const amount = formData.amount;
+    const price = formData.price_per_litre;
+    const litres = formData.litres;
+
+    // Only calculate if we have amount
+    if (!amount || amount <= 0) return;
+
+    if (lastEditedFuelField === "price" && price && price > 0) {
+      // User entered price, calculate litres = amount / price
+      const calculated = Math.round((amount / price) * 100) / 100;
+      if (calculated !== litres) {
+        setLitresText(calculated.toString());
+        setFormData(prev => ({ ...prev, litres: calculated }));
+      }
+    } else if (lastEditedFuelField === "litres" && litres && litres > 0) {
+      // User entered litres, calculate price = amount / litres
+      const calculated = Math.round((amount / litres) * 100) / 100;
+      if (calculated !== price) {
+        setPricePerLitreText(calculated.toString());
+        setFormData(prev => ({ ...prev, price_per_litre: calculated }));
+      }
+    }
+  }, [formData.amount, formData.price_per_litre, formData.litres, formData.type, lastEditedFuelField, editModalVisible]);
+
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
+    const expenseDate = new Date(expense.date);
+    setSelectedDate(expenseDate);
     setFormData({
       bike_id: expense.bike_id,
       type: expense.type,
@@ -175,7 +219,15 @@ export const ExpensesScreen = () => {
       date: expense.date,
       odometer: expense.odometer,
       notes: expense.notes || "",
+      // Fuel-specific fields
+      litres: expense.litres,
+      is_full_tank: expense.is_full_tank || false,
+      price_per_litre: expense.price_per_litre,
     });
+    // Set text values for fuel fields
+    setPricePerLitreText(expense.price_per_litre ? expense.price_per_litre.toString() : "");
+    setLitresText(expense.litres ? expense.litres.toString() : "");
+    setLastEditedFuelField(null);
     setEditModalVisible(true);
   };
 
@@ -187,6 +239,21 @@ export const ExpensesScreen = () => {
       showSuccess("Expense Updated", "Expense updated successfully!");
       setEditModalVisible(false);
       setEditingExpense(null);
+      // Reset form data
+      setFormData({
+        bike_id: "",
+        type: "",
+        amount: 0,
+        date: new Date().toISOString().split("T")[0],
+        odometer: undefined,
+        notes: "",
+        litres: undefined,
+        is_full_tank: false,
+        price_per_litre: undefined,
+      });
+      setPricePerLitreText("");
+      setLitresText("");
+      setLastEditedFuelField(null);
       fetchData();
     } catch (error: any) {
       console.error("Error updating expense:", error);
@@ -196,6 +263,20 @@ export const ExpensesScreen = () => {
           : error.message || "Failed to update expense";
       showError("Update Failed", errorMessage);
     }
+  };
+
+  const handleDateChange = (event: any, date?: Date) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+    if (date) {
+      setSelectedDate(date);
+      setFormData({ ...formData, date: format(date, "yyyy-MM-dd") });
+    }
+  };
+
+  const handleDatePickerConfirm = () => {
+    setShowDatePicker(false);
   };
 
   const handleDelete = (expense: Expense) => {
@@ -537,6 +618,22 @@ export const ExpensesScreen = () => {
         onClose={() => {
           setEditModalVisible(false);
           setEditingExpense(null);
+          // Reset form data
+          setFormData({
+            bike_id: "",
+            type: "",
+            amount: 0,
+            date: new Date().toISOString().split("T")[0],
+            odometer: undefined,
+            notes: "",
+            litres: undefined,
+            is_full_tank: false,
+            price_per_litre: undefined,
+          });
+          setPricePerLitreText("");
+          setLitresText("");
+          setLastEditedFuelField(null);
+          setSelectedDate(new Date());
         }}
         title="Edit Expense"
         description="Update expense details"
@@ -546,7 +643,7 @@ export const ExpensesScreen = () => {
           label="Bike *"
           value={formData.bike_id}
           options={bikes.map((bike) => ({
-            label: bike.model,
+            label: `${bike.brand ? bike.brand + ' ' : ''}${bike.model}`,
             value: bike.id,
           }))}
           onValueChange={(value) =>
@@ -577,30 +674,75 @@ export const ExpensesScreen = () => {
             { label: "EMI", value: "EMI" },
             { label: "Other", value: "Other" },
           ]}
-          onValueChange={(value) => setFormData({ ...formData, type: value })}
+          onValueChange={(value) => {
+            if (value !== "Fuel") {
+              // Reset fuel-specific fields when type is not Fuel
+              setFormData({
+                ...formData,
+                type: value,
+                litres: undefined,
+                is_full_tank: false,
+                price_per_litre: undefined,
+              });
+              setPricePerLitreText("");
+              setLitresText("");
+              setLastEditedFuelField(null);
+            } else {
+              setFormData({ ...formData, type: value });
+            }
+          }}
         />
 
         <Input
           label="Amount (₹) *"
           placeholder="Enter amount"
-          value={formData.amount.toString()}
-          onChangeText={(text) =>
-            setFormData({ ...formData, amount: parseFloat(text) || 0 })
-          }
-          keyboardType="numeric"
+          value={formData.amount ? formData.amount.toString() : ""}
+          onChangeText={(text) => {
+            // Allow empty, numbers, and decimal point
+            const cleanText = text.replace(/[^0-9.]/g, '');
+            const parts = cleanText.split('.');
+            const sanitized = parts.length > 2 
+              ? parts[0] + '.' + parts.slice(1).join('')
+              : cleanText;
+            const numValue = parseFloat(sanitized);
+            setFormData({
+              ...formData,
+              amount: !isNaN(numValue) ? numValue : 0,
+            });
+            // Reset fuel fields when amount changes so user can re-enter
+            if (formData.type === "Fuel") {
+              setPricePerLitreText("");
+              setLitresText("");
+              setFormData(prev => ({
+                ...prev,
+                amount: !isNaN(numValue) ? numValue : 0,
+                price_per_litre: undefined,
+                litres: undefined,
+              }));
+              setLastEditedFuelField(null);
+            }
+          }}
+          keyboardType="decimal-pad"
         />
 
-        <Input
-          label="Date *"
-          placeholder="YYYY-MM-DD"
-          value={formData.date}
-          onChangeText={(text) => setFormData({ ...formData, date: text })}
-        />
+        {/* Date */}
+        <View className="mb-4">
+          <Text className="text-zinc-300 mb-2 text-sm">Date *</Text>
+          <TouchableOpacity
+            className="h-12 bg-zinc-900/50 border border-white/10 rounded-lg px-4 flex-row justify-between items-center"
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text className="text-white">
+              {format(selectedDate, "dd MMM yyyy")}
+            </Text>
+            <Calendar color="#71717a" size={20} />
+          </TouchableOpacity>
+        </View>
 
         <Input
           label="Odometer (km)"
           placeholder="Enter odometer reading"
-          value={formData.odometer?.toString() || ""}
+          value={formData.odometer ? formData.odometer.toString() : ""}
           onChangeText={(text) =>
             setFormData({
               ...formData,
@@ -610,14 +752,150 @@ export const ExpensesScreen = () => {
           keyboardType="numeric"
         />
 
+        {/* Fuel-specific fields - only show when type is Fuel */}
+        {formData.type === "Fuel" && (
+          <View className="mt-2 mb-4 p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+            <View className="flex-row items-center mb-4">
+              <Fuel color="#3b82f6" size={20} />
+              <Text className="text-blue-400 text-base font-semibold ml-2">
+                Fuel Details
+              </Text>
+              <Text className="text-zinc-500 text-xs ml-2">
+                (Optional)
+              </Text>
+            </View>
+
+            {/* Price per litre */}
+            <Input
+              label="Price per Litre (₹)"
+              placeholder="e.g., 104.50"
+              value={pricePerLitreText}
+              onChangeText={(text) => {
+                // Allow empty, numbers, and decimal point
+                const cleanText = text.replace(/[^0-9.]/g, '');
+                // Ensure only one decimal point
+                const parts = cleanText.split('.');
+                const sanitized = parts.length > 2 
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleanText;
+                setPricePerLitreText(sanitized);
+                setLastEditedFuelField("price");
+                const numValue = parseFloat(sanitized);
+                setFormData({
+                  ...formData,
+                  price_per_litre: !isNaN(numValue) ? numValue : undefined,
+                });
+              }}
+              keyboardType="decimal-pad"
+            />
+
+            {/* Litres */}
+            <Input
+              label="Litres Filled"
+              placeholder="e.g., 5.5"
+              value={litresText}
+              onChangeText={(text) => {
+                // Allow empty, numbers, and decimal point
+                const cleanText = text.replace(/[^0-9.]/g, '');
+                // Ensure only one decimal point
+                const parts = cleanText.split('.');
+                const sanitized = parts.length > 2 
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleanText;
+                setLitresText(sanitized);
+                setLastEditedFuelField("litres");
+                const numValue = parseFloat(sanitized);
+                setFormData({
+                  ...formData,
+                  litres: !isNaN(numValue) ? numValue : undefined,
+                });
+              }}
+              keyboardType="decimal-pad"
+            />
+
+            {/* Auto-calculation info */}
+            {(() => {
+              const hasAmount = formData.amount && formData.amount > 0;
+              const hasPrice = formData.price_per_litre && formData.price_per_litre > 0;
+              const hasLitres = formData.litres && formData.litres > 0;
+              
+              if (hasAmount && hasPrice && hasLitres) {
+                const calculatedMessage = lastEditedFuelField === "price"
+                  ? `Litres: ${formData.litres?.toFixed(2)}L (₹${formData.amount} ÷ ₹${formData.price_per_litre})`
+                  : `Price: ₹${formData.price_per_litre?.toFixed(2)}/L (₹${formData.amount} ÷ ${formData.litres}L)`;
+                
+                return (
+                  <View className="bg-green-500/10 rounded-lg p-3 mb-4 border border-green-500/20">
+                    <Text className="text-green-400 text-xs">
+                      ✓ Auto-filled: {calculatedMessage}
+                    </Text>
+                  </View>
+                );
+              }
+              
+              // Show hint if amount is entered but fuel details are empty
+              if (hasAmount && !hasPrice && !hasLitres) {
+                return (
+                  <View className="bg-blue-500/10 rounded-lg p-3 mb-4 border border-blue-500/20">
+                    <Text className="text-blue-400 text-xs">
+                      💡 Enter price or litres - the other will be auto-calculated
+                    </Text>
+                  </View>
+                );
+              }
+              
+              return null;
+            })()}
+
+            {/* Full Tank Checkbox */}
+            <View className="flex-row items-center justify-between mb-2 py-2">
+              <View className="flex-1">
+                <Text className="text-zinc-300 text-sm font-medium">
+                  Full Tank
+                </Text>
+                <Text className="text-zinc-500 text-xs mt-1">
+                  Enable to track mileage between refuels
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() =>
+                  setFormData({
+                    ...formData,
+                    is_full_tank: !formData.is_full_tank,
+                  })
+                }
+                className={`w-12 h-7 rounded-full flex-row items-center px-0.5 ${
+                  formData.is_full_tank
+                    ? "bg-blue-500"
+                    : "bg-zinc-700"
+                }`}
+              >
+                <View
+                  className={`w-6 h-6 rounded-full bg-white shadow-md ${
+                    formData.is_full_tank ? "ml-5" : "ml-0"
+                  }`}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {formData.is_full_tank && (
+              <View className="bg-blue-500/10 rounded-lg p-3 mt-2 border border-blue-500/20">
+                <Text className="text-blue-300 text-xs">
+                  Mileage will be calculated when you add your next full tank refuel
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <Input
           label="Notes"
           placeholder="Add any notes..."
           value={formData.notes}
           onChangeText={(text) => setFormData({ ...formData, notes: text })}
           multiline
-          numberOfLines={3}
-          style={{ height: 80, textAlignVertical: "top" }}
+          numberOfLines={4}
+          style={{ height: 100, textAlignVertical: "top" }}
         />
       </ModalDialog>
 
@@ -732,6 +1010,57 @@ export const ExpensesScreen = () => {
             display="default"
             onChange={handleEndDateChange}
             minimumDate={startDate || undefined}
+            maximumDate={new Date()}
+          />
+        )
+      )}
+
+      {/* Edit Modal Date Picker */}
+      {Platform.OS === "ios" ? (
+        <Modal
+          visible={showDatePicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDatePicker(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setShowDatePicker(false)}>
+            <View className="flex-1 bg-black/80 justify-end">
+              <TouchableWithoutFeedback>
+                <View className="bg-zinc-900 rounded-t-2xl border-t border-white/10">
+                  <View className="flex-row justify-between items-center px-4 py-3 border-b border-white/10">
+                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                      <Text className="text-zinc-400 text-base">Cancel</Text>
+                    </TouchableOpacity>
+                    <Text className="text-white text-base font-semibold">
+                      Select Date
+                    </Text>
+                    <TouchableOpacity onPress={handleDatePickerConfirm}>
+                      <Text className="text-primary text-base font-semibold">
+                        Done
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={handleDateChange}
+                    maximumDate={new Date()}
+                    textColor="#ffffff"
+                    style={{ height: 200 }}
+                  />
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      ) : (
+        showDatePicker && (
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
             maximumDate={new Date()}
           />
         )

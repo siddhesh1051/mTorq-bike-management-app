@@ -7,27 +7,14 @@ import {
 /**
  * API Configuration
  *
- * Backend URL is now loaded from environment variables (.env file)
- *
- * To change the backend URL:
- * 1. Update the .env file in the project root
- * 2. Restart the Expo development server
- *
- * Environment-specific URLs:
- * - iOS Simulator: http://localhost:8000
- * - Android Emulator: http://10.0.2.2:8000
- * - Physical Device: http://YOUR_LOCAL_IP:8000
- * - Production: https://your-api.com
+ * Note: Backend has been migrated to Firebase.
+ * This file now only contains Cloudinary configuration.
  */
 
 export const API_CONFIG = {
-  // Backend URL from environment variable with fallback
-  BACKEND_URL: EXPO_PUBLIC_API_URL || "http://localhost:8000",
-
-  // API prefix (usually '/api')
-  API_PREFIX: "/api",
-
-  // Request timeout in milliseconds
+  // Legacy config - no longer used (kept for compatibility)
+  BACKEND_URL: "",
+  API_PREFIX: "",
   TIMEOUT: 300000,
 };
 
@@ -40,7 +27,7 @@ export const CLOUDINARY_CONFIG = {
   }/raw/upload`,
 };
 
-// Helper to get full API URL
+// Helper to get full API URL (legacy - no longer used)
 export const getApiUrl = () => {
-  return `${API_CONFIG.BACKEND_URL}${API_CONFIG.API_PREFIX}`;
+  return "";
 };
