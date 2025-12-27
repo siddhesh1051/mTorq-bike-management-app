@@ -1,5 +1,5 @@
-import React from 'react';
-import { TextInput, TextInputProps, View, Text } from 'react-native';
+import React from "react";
+import { TextInput, TextInputProps, View, Text } from "react-native";
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -11,7 +11,7 @@ export const Input = ({ label, error, style, ...props }: InputProps) => {
     <View className="mb-4">
       {label && <Text className="text-zinc-300 mb-2 text-sm">{label}</Text>}
       <TextInput
-        className="h-12 bg-zinc-900/50 border border-white/10 rounded-lg px-4 text-white"
+        className="h-12 bg-zinc-900/50 border border-white/10 rounded-lg px-4 text-white focus:outline-none focus:border-[#115e59]"
         placeholderTextColor="#71717a"
         style={style}
         {...props}
