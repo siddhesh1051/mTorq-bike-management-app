@@ -41,6 +41,12 @@
             "newArchEnabled": true
           }
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.525146398554-ftl523resspr9q98sl37mgk07f1pk643"
+        }
       ]
     ],
     "extra": {

@@ -348,7 +348,7 @@ export const VaultScreen = () => {
 
       const cloudinaryData = await cloudinaryResponse.json();
 
-      // Step 2: Save document metadata to our backend
+      // Step 2: Save document metadata to Firebase
       await apiService.uploadDocument({
         bike_id: bike.id,
         document_type: selectedDocType,

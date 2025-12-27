@@ -306,13 +306,9 @@ const calculateOverallMileage = (expenses: Expense[]): OverallMileageStats => {
   // Calculate total distance = Latest Full Tank Odometer - First Full Tank Odometer
   const totalDistance = (latestFullTank.odometer || 0) - (firstFullTank.odometer || 0);
 
-  // Get all fuel expenses (not just full tank) for calculating total fuel consumed
-  const allFuelExpenses = expenses.filter(
-    (e) => e.type === "Fuel" && e.litres
-  );
-
-  // Sum all fuel expenses litres EXCEPT the first full tank's litres
-  const totalFuel = allFuelExpenses
+  // Only use full tank expenses for calculating total fuel consumed
+  // Sum all full tank expenses litres EXCEPT the first full tank's litres
+  const totalFuel = sortedFullTanks
     .filter((e) => e.id !== firstFullTank.id) // Exclude first full tank
     .reduce((sum, e) => sum + (e.litres || 0), 0);
 
