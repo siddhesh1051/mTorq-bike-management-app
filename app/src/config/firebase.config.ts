@@ -29,13 +29,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Google OAuth Client ID (Web client ID from Firebase Console)
-// Get this from: Firebase Console > Authentication > Sign-in method > Google > Web client ID
-export const GOOGLE_CLIENT_ID = EXPO_PUBLIC_GOOGLE_CLIENT_ID || "";
-
-// Google OAuth Redirect URI (must be HTTPS)
-// For development: Use Expo proxy URL or custom HTTPS domain
-// Format: https://auth.expo.io/@username/slug or https://yourdomain.com/auth
-export const GOOGLE_REDIRECT_URI = EXPO_PUBLIC_GOOGLE_REDIRECT_URI || "";
+// Google OAuth Client ID (Web client ID - used for native Google Sign-In)
+// For Android: Use Web client ID (525146398554-8jakei2tm0uq5hv03a0552hcnq3addn8.apps.googleusercontent.com)
+// For iOS: iOS client ID is configured in app.json plugin (iosUrlScheme)
+export const GOOGLE_CLIENT_ID = EXPO_PUBLIC_GOOGLE_CLIENT_ID;
 
 export default app;
