@@ -57,7 +57,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    // First, try to restore user from AsyncStorage as a fallback
+    const restoreUserFromStorage = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("user");
+        const storedToken = await AsyncStorage.getItem("token");
+        if (storedUser && storedToken) {
+          // Temporarily set user from storage while Firebase auth state loads
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        }
+      } catch (error) {
+        console.log("No stored user found or error reading storage:", error);
+      }
+    };
+
+    // Restore from storage immediately
+    restoreUserFromStorage();
+
     // Listen for auth state changes
+    // This will fire immediately with the current auth state, then on any changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
