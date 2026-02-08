@@ -303,13 +303,29 @@ const calculateOverallMileage = (expenses: Expense[]): OverallMileageStats => {
   // Get latest/recent full tank (most recent)
   const latestFullTank = sortedFullTanks[sortedFullTanks.length - 1];
 
+  const firstTime = new Date(firstFullTank.date).getTime();
+  const firstCreated = new Date(firstFullTank.created_at).getTime();
+  const latestTime = new Date(latestFullTank.date).getTime();
+  const latestCreated = new Date(latestFullTank.created_at).getTime();
+
   // Calculate total distance = Latest Full Tank Odometer - First Full Tank Odometer
   const totalDistance = (latestFullTank.odometer || 0) - (firstFullTank.odometer || 0);
 
-  // Only use full tank expenses for calculating total fuel consumed
-  // Sum all full tank expenses litres EXCEPT the first full tank's litres
-  const totalFuel = sortedFullTanks
-    .filter((e) => e.id !== firstFullTank.id) // Exclude first full tank
+  // Sum ALL fuel litres (full tank + non-full tank) between first and latest full tank.
+  // Exclude the first full tank's litres (that fuel was already in the tank at start).
+  const totalFuel = expenses
+    .filter((e) => e.type === "Fuel" && e.litres != null && e.litres > 0)
+    .filter((e) => {
+      const eTime = new Date(e.date).getTime();
+      const eCreated = new Date(e.created_at).getTime();
+      const afterFirst =
+        eTime > firstTime ||
+        (eTime === firstTime && eCreated > firstCreated);
+      const atOrBeforeLatest =
+        eTime < latestTime ||
+        (eTime === latestTime && eCreated <= latestCreated);
+      return afterFirst && atOrBeforeLatest;
+    })
     .reduce((sum, e) => sum + (e.litres || 0), 0);
 
   // Average mileage = Total Distance / Total Petrol Consumed (excluding first full tank)
