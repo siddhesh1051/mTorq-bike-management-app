@@ -231,26 +231,48 @@ const calculateMileageForExpense = (
     };
   }
 
-  // Calculate mileage: (Current Odometer - Previous Odometer) / Litres of Current Expense
+  const previousTime = new Date(previousExpense.date).getTime();
+  const previousCreated = new Date(previousExpense.created_at).getTime();
+
+  // Sum all fuel (partial + full) between previous full tank and this full tank (exclusive of this one)
+  const litresBetween = allExpenses
+    .filter((e) => e.type === "Fuel" && e.litres != null && e.litres > 0 && e.id !== expense.id)
+    .filter((e) => {
+      const eTime = new Date(e.date).getTime();
+      const eCreated = new Date(e.created_at).getTime();
+      const afterPrevious =
+        eTime > previousTime ||
+        (eTime === previousTime && eCreated > previousCreated);
+      const beforeCurrent =
+        eTime < currentExpenseTime ||
+        (eTime === currentExpenseTime && eCreated < currentExpenseCreatedTime);
+      return afterPrevious && beforeCurrent;
+    })
+    .reduce((sum, e) => sum + (e.litres || 0), 0);
+
+  // Total litres = partial/other refuels in between + this full tank
+  const totalLitres = litresBetween + expense.litres;
+
+  // Distance = Current Odometer - Previous Full Tank Odometer
   const distance = expense.odometer - (previousExpense.odometer || 0);
-  
+
   if (distance <= 0) {
     return {
       mileage: null,
       distance: null,
-      litres: expense.litres,
+      litres: totalLitres,
       previousOdometer: previousExpense.odometer || null,
       canCalculate: false,
       errorMessage: "Invalid odometer reading (current ≤ previous)",
     };
   }
-  
-  const mileage = distance / expense.litres;
+
+  const mileage = totalLitres > 0 ? distance / totalLitres : null;
 
   return {
-    mileage: Math.round(mileage * 10) / 10,
+    mileage: mileage != null ? Math.round(mileage * 10) / 10 : null,
     distance,
-    litres: expense.litres,
+    litres: totalLitres,
     previousOdometer: previousExpense.odometer || null,
     canCalculate: true,
     errorMessage: null,
