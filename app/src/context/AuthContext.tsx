@@ -15,6 +15,7 @@ import {
 import { User, LoginCredentials, SignupCredentials } from "../types";
 import apiService from "../services/api";
 import { auth, db, GOOGLE_CLIENT_ID } from "../config/firebase.config";
+import analyticsService from "../services/analytics";
 
 interface AuthContextType {
   user: User | null;
@@ -96,6 +97,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             await AsyncStorage.setItem("user", JSON.stringify(userProfile));
             const token = await firebaseUser.getIdToken();
             await AsyncStorage.setItem("token", token);
+            
+            // Track user in analytics
+            await analyticsService.identifyUser(firebaseUser.uid, {
+              email: userProfile.email,
+              name: userProfile.name,
+              $email: userProfile.email, // Mixpanel special property
+              $name: userProfile.name, // Mixpanel special property
+              created_at: userProfile.created_at,
+            });
           } else {
             setUser(null);
             await AsyncStorage.removeItem("token");
@@ -131,6 +141,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.setItem("token", response.access_token);
     await AsyncStorage.setItem("user", JSON.stringify(response.user));
     setUser(response.user);
+    
+    // Track login event
+    await analyticsService.trackLogin('email', credentials.email);
   };
 
   const signup = async (credentials: SignupCredentials) => {
@@ -138,6 +151,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.setItem("token", response.access_token);
     await AsyncStorage.setItem("user", JSON.stringify(response.user));
     setUser(response.user);
+    
+    // Track signup event
+    await analyticsService.trackSignup('email', credentials.email);
   };
 
   const loginWithGoogle = async () => {
@@ -162,6 +178,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await AsyncStorage.setItem("token", response.access_token);
       await AsyncStorage.setItem("user", JSON.stringify(response.user));
       setUser(response.user);
+      
+      // Track Google login
+      await analyticsService.trackLogin('google', response.user.email);
     } catch (error: any) {
       console.error("❌ Google Sign-In error:", error);
 
@@ -196,6 +215,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Ignore errors if user is not signed in with Google
       console.log("Google Sign-In sign out:", error);
     }
+
+    // Track logout before resetting
+    await analyticsService.trackLogout();
+    
+    // Reset analytics (clear user identity)
+    await analyticsService.reset();
 
     // Sign out from Firebase
     await apiService.logout();

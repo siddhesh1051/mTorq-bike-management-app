@@ -53,6 +53,7 @@ import apiService from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { format } from "date-fns";
 import { CLOUDINARY_CONFIG } from "../config/api.config";
+import analyticsService from "../services/analytics";
 
 const { width, height } = Dimensions.get("window");
 
@@ -361,6 +362,15 @@ export const VaultScreen = () => {
       });
 
       showSuccess("Uploaded", "Document uploaded successfully!");
+      
+      // Track document upload
+      await analyticsService.trackDocumentUploaded({
+        type: selectedDocType,
+        bike_id: bike.id,
+        file_type: 'pdf',
+        file_size: selectedFile.size,
+      });
+      
       resetUploadForm();
       setUploadModalVisible(false);
       fetchDocuments();
@@ -392,6 +402,9 @@ export const VaultScreen = () => {
 
     try {
       const downloadUrl = await apiService.getDocumentDownloadUrl(document.id);
+
+      // Track document download
+      await analyticsService.trackDocumentDownloaded(document.document_type, bike.id);
 
       // Open the URL - the browser/system will handle the download
       const canOpen = await Linking.canOpenURL(downloadUrl);
@@ -429,6 +442,13 @@ export const VaultScreen = () => {
     try {
       await apiService.deleteDocument(documentToDelete.id);
       showSuccess("Deleted", "Document deleted successfully");
+      
+      // Track document deletion
+      await analyticsService.trackDocumentDeleted(
+        documentToDelete.document_type,
+        bike.id
+      );
+      
       setDocuments((docs) => docs.filter((d) => d.id !== documentToDelete.id));
     } catch (error: any) {
       console.error("Delete error:", error);

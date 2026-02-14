@@ -28,6 +28,7 @@ import { Bike, ExpenseCreate } from "../types";
 import apiService from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { format } from "date-fns";
+import analyticsService from "../services/analytics";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -137,6 +138,19 @@ export const AddExpenseScreen = () => {
     try {
       await apiService.createExpense(formData);
       showSuccess("Expense Added", "Expense added successfully!");
+      
+      // Track expense added event
+      await analyticsService.trackExpenseAdded({
+        type: formData.type,
+        amount: formData.amount,
+        bike_id: formData.bike_id,
+        has_odometer: !!formData.odometer,
+        has_notes: !!formData.notes,
+        is_fuel: formData.type === 'Fuel',
+        has_fuel_details: formData.type === 'Fuel' && (!!formData.litres || !!formData.price_per_litre),
+        is_full_tank: formData.is_full_tank,
+      });
+      
       setTimeout(() => {
         animateOut();
       }, 800);

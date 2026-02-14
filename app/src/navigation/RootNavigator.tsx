@@ -5,11 +5,14 @@ import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { AuthScreen, AddExpenseScreen, BikeDetailScreen, VaultScreen } from "../screens";
 import { MainNavigator } from "./MainNavigator";
+import analyticsService from "../services/analytics";
 
 const Stack = createNativeStackNavigator();
 
 export const RootNavigator = () => {
   const { user, loading } = useAuth();
+  const navigationRef = React.useRef<any>(null);
+  const routeNameRef = React.useRef<string | undefined>();
 
   if (loading) {
     return (
@@ -20,7 +23,25 @@ export const RootNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => {
+        // Save the initial route name
+        routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
+      }}
+      onStateChange={async () => {
+        const previousRouteName = routeNameRef.current;
+        const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
+
+        if (previousRouteName !== currentRouteName && currentRouteName) {
+          // Track screen view
+          await analyticsService.trackScreenView(currentRouteName);
+        }
+
+        // Save the current route name for next comparison
+        routeNameRef.current = currentRouteName;
+      }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <>

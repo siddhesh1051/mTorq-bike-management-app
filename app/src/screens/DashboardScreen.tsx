@@ -13,6 +13,7 @@ import { DashboardStats } from "../types";
 import apiService from "../services/api";
 import { format } from "date-fns";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import analyticsService from "../services/analytics";
 
 // Skeleton for expense item
 const ExpenseItemSkeleton = () => (
@@ -193,7 +194,10 @@ export const DashboardScreen = () => {
       {/* Floating Action Button */}
       <TouchableOpacity
         className="absolute bottom-4 right-4 bg-primary rounded-full w-16 h-16 items-center justify-center shadow-2xl"
-        onPress={() => navigation.navigate("Add" as never)}
+        onPress={() => {
+          analyticsService.trackQuickActionUsed('add_expense');
+          navigation.navigate("Add" as never);
+        }}
         activeOpacity={0.8}
         style={{
           shadowColor: "#ccfbf1",

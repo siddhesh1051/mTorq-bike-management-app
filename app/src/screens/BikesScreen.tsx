@@ -34,6 +34,7 @@ import apiService from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import analyticsService from "../services/analytics";
 
 // Calculate overall mileage for a bike from all full tank expenses
 interface BikeStats {
@@ -454,9 +455,26 @@ export const BikesScreen = () => {
       if (editingBike) {
         await apiService.updateBike(editingBike.id, formData);
         showSuccess("Bike Updated", "Bike updated successfully!");
+        
+        // Track bike edited - determine changes
+        const changes: string[] = [];
+        if (formData.brand !== editingBike.brand) changes.push('brand');
+        if (formData.model !== editingBike.model) changes.push('model');
+        if (formData.registration !== editingBike.registration) changes.push('registration');
+        if (formData.image_url !== editingBike.image_url) changes.push('image');
+        
+        await analyticsService.trackBikeEdited(editingBike.id, changes);
       } else {
         await apiService.createBike(formData);
         showSuccess("Bike Added", "Bike added successfully!");
+        
+        // Track bike added
+        await analyticsService.trackBikeAdded({
+          brand: formData.brand,
+          model: formData.model,
+          has_registration: !!formData.registration,
+          has_image: !!formData.image_url,
+        });
       }
 
       setModalVisible(false);
@@ -501,6 +519,14 @@ export const BikesScreen = () => {
     try {
       await apiService.deleteBike(bikeToDelete.id);
       showSuccess("Bike Deleted", "Bike deleted successfully!");
+      
+      // Track bike deletion
+      await analyticsService.trackBikeDeleted(
+        bikeToDelete.id,
+        bikeToDelete.brand || '',
+        bikeToDelete.model
+      );
+      
       fetchBikes();
     } catch (error: any) {
       console.error("Error deleting bike:", error);
@@ -594,6 +620,13 @@ export const BikesScreen = () => {
   };
 
   const handleCardPress = (bike: Bike) => {
+    // Track bike viewed
+    analyticsService.trackBikeViewed(
+      bike.id,
+      bike.brand || '',
+      bike.model
+    );
+    
     navigation.navigate("BikeDetail", { bike });
   };
 

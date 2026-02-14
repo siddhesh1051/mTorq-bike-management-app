@@ -28,6 +28,7 @@ import { Expense, Bike, ExpenseCreate } from "../types";
 import apiService from "../services/api";
 import { format } from "date-fns";
 import { useToast } from "../context/ToastContext";
+import analyticsService from "../services/analytics";
 
 // Expense card skeleton
 const ExpenseCardSkeleton = () => (
@@ -237,6 +238,17 @@ export const ExpensesScreen = () => {
     try {
       await apiService.updateExpense(editingExpense.id, formData);
       showSuccess("Expense Updated", "Expense updated successfully!");
+      
+      // Track expense edited - determine which fields changed
+      const changes: string[] = [];
+      if (formData.amount !== editingExpense.amount) changes.push('amount');
+      if (formData.type !== editingExpense.type) changes.push('type');
+      if (formData.odometer !== editingExpense.odometer) changes.push('odometer');
+      if (formData.notes !== editingExpense.notes) changes.push('notes');
+      if (formData.date !== editingExpense.date) changes.push('date');
+      
+      await analyticsService.trackExpenseEdited(editingExpense.id, formData.type, changes);
+      
       setEditModalVisible(false);
       setEditingExpense(null);
       // Reset form data
@@ -290,6 +302,14 @@ export const ExpensesScreen = () => {
     try {
       await apiService.deleteExpense(expenseToDelete.id);
       showSuccess("Expense Deleted", "Expense deleted successfully!");
+      
+      // Track expense deletion
+      await analyticsService.trackExpenseDeleted(
+        expenseToDelete.id,
+        expenseToDelete.type,
+        expenseToDelete.amount
+      );
+      
       fetchData();
     } catch (error: any) {
       console.error("Error deleting expense:", error);

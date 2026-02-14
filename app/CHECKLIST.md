@@ -250,10 +250,24 @@ Use this checklist before running or deploying your mobile app.
 ### Production Checklist
 - [ ] Backend URL set to production
 - [ ] API endpoints all working
-- [ ] Error tracking configured
-- [ ] Analytics configured
+- [x] Error tracking configured (Mixpanel)
+- [x] Analytics configured (Mixpanel)
 - [ ] Privacy policy ready
 - [ ] Terms of service ready
+
+### Analytics Setup
+- [x] Mixpanel SDK installed
+- [x] Analytics service created
+- [ ] Mixpanel token configured in .env
+- [x] User identification tracking
+- [x] Screen view tracking (automatic)
+- [x] Authentication events (signup/login/logout)
+- [x] Bike management events (add/edit/delete)
+- [x] Expense management events (add/edit/delete)
+- [x] Document vault events (upload/download/delete)
+- [x] User property tracking
+- [x] Error tracking configured
+- [ ] ANALYTICS_SETUP.md reviewed
 
 ## ✅ Final Checks
 

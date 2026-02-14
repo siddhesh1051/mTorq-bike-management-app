@@ -23,6 +23,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import apiService from "../services/api";
+import analyticsService from "../services/analytics";
 
 export const SettingsScreen = () => {
   const { user, logout, updateUser } = useAuth();
@@ -66,6 +67,10 @@ export const SettingsScreen = () => {
       const updatedUser = await apiService.updateName(name.trim());
       updateUser(updatedUser);
       showSuccess("Name Updated", "Your name has been updated successfully");
+      
+      // Track profile update
+      await analyticsService.trackProfileUpdated(['name']);
+      
       setEditNameModalVisible(false);
     } catch (error: any) {
       console.error("Error updating name:", error);
@@ -106,6 +111,10 @@ export const SettingsScreen = () => {
     try {
       await apiService.updatePassword(currentPassword, newPassword);
       showSuccess("Password Updated", "Your password has been updated successfully");
+      
+      // Track password change
+      await analyticsService.trackPasswordChanged();
+      
       setResetPasswordModalVisible(false);
       setCurrentPassword("");
       setNewPassword("");
